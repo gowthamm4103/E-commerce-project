@@ -547,7 +547,7 @@ function BrandOwnerDashboard({
     }
   };
 
-  // Financial data - in a real app, this would come from an API
+  // Financial data - in aa real app, this would come from an API
   const [financialData, setFinancialData] = useState({
     directIncome: 0,
     indirectIncome: 0,
