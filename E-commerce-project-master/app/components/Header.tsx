@@ -25,6 +25,7 @@ import {
 import { CartContext } from "../context/CartContext";
 import { authAPI, setUserSession, getUserSession } from "../lib/api";
 import type { PageName, UserData } from "../types";
+import TwoFactorAuthSetup from "./TwoFactorAuthSetup";
 
 interface HeaderProps {
   setCurrentPage: (page: PageName) => void;
@@ -43,6 +44,7 @@ interface HeaderProps {
   onPortalClick?: () => void;
   onNavigateToSignup?: () => void;
   currentPage?: PageName;
+  hasPortal?: boolean;
 }
 
 const Header = ({
@@ -61,6 +63,7 @@ const Header = ({
   onMenuClick,
   onPortalClick,
   onNavigateToSignup,
+  hasPortal = false,
   currentPage = "landing",
 }: HeaderProps): JSX.Element => {
   const { cartItems, wishlistItems } = useContext(CartContext);
@@ -170,7 +173,7 @@ const Header = ({
   };
 
   const handle2FAClick = () => {
-    setActiveMenuSection("2fa");
+    setShow2FAModal(true);
   };
 
   // New handlers for menu items
@@ -1995,7 +1998,28 @@ const Header = ({
                     <input
                       type="text"
                       value={userMobile}
-                      onChange={(e) => setUserMobile(e.target.value)}
+                      readOnly
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <Lock size={16} className="text-gray-400" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 flex items-center">
+                    <Lock size={12} className="mr-1" />
+                    Mobile number cannot be changed
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -2010,32 +2034,11 @@ const Header = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth="2"
-                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         ></path>
                       </svg>
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      value={userEmail}
-                      readOnly
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <Lock size={16} className="text-gray-400" />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 flex items-center">
-                    <Lock size={12} className="mr-1" />
-                    Email cannot be changed
-                  </p>
                 </div>
               </div>
             </div>
@@ -2347,7 +2350,7 @@ const Header = ({
                         type="password"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
                         placeholder="Enter current password"
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -2378,7 +2381,7 @@ const Header = ({
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
                         placeholder="Enter new password"
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -2409,7 +2412,7 @@ const Header = ({
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
                         placeholder="Confirm new password"
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -2435,13 +2438,13 @@ const Header = ({
                 <div className="flex space-x-3 mt-6">
                   <button
                     onClick={() => setShowPasswordModal(false)}
-                    className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-200"
+                    className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handlePasswordChange}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
                   >
                     Save Changes
                   </button>
@@ -3707,14 +3710,15 @@ const Header = ({
                 />
               </form>
 
-              {/* Set Up Portal Button - Show only on dashboard pages for logged-in customer, founder and brand owner */}
+              {/* Set Up Portal Button - Show only on dashboard pages for logged-in customer, founder and brand owner who haven't set up portal yet */}
               {user &&
-                (user.userType === "customer" ||
-                  user.userType === "founder" ||
-                  user.userType === "brand_owner") &&
+                  (user.userType === "customer" ||
+                    user.userType === "founder" ||
+                    user.userType === "brand_owner") &&
                 (currentPage === "customerDashboard" ||
                   currentPage === "founderDashboard" ||
-                  currentPage === "brandOwnerDashboard") && (
+                  currentPage === "brandOwnerDashboard") &&
+                !hasPortal && (
                   <button
                     onClick={onPortalClick}
                     className="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-500 rounded hover:from-green-700 hover:to-green-600 transition-all duration-300 ease-in-out hover:scale-105"
@@ -3863,6 +3867,21 @@ const Header = ({
 
       {/* Menu Drawer - only rendered when user is logged in */}
       {user && renderMenuDrawer()}
+
+      {/* 2FA Modal - Uses TwoFactorAuthSetup component in modal mode */}
+      {show2FAModal && user && (
+        <TwoFactorAuthSetup
+          user={user}
+          isModal={true}
+          onClose={() => setShow2FAModal(false)}
+          onVerificationSuccess={() => {
+            setShow2FAModal(false);
+            // Optionally show a success message or refresh user data
+          }}
+          onSkip={() => setShow2FAModal(false)}
+          onBackToLogin={() => setShow2FAModal(false)}
+        />
+      )}
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirmation && (

@@ -10,12 +10,12 @@ import PortalRegistration from './PortalRegistration';
 import CustomerDashboard from './CustomerDashboard';
 import TeamMemberPortal from './TeamMemberPortal';
 
-const CustomerPortalLanding = ({ portalUrl }: { portalUrl: string }): JSX.Element => {
+const CustomerPortalLanding = ({ portalUrl, directToLogin = false }: { portalUrl: string; directToLogin?: boolean }): JSX.Element => {
   const router = useRouter();
   const [portalData, setPortalData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState('landing');
+  const [view, setView] = useState<string>(directToLogin ? 'login' : 'landing');
   const [params, setParams] = useState<any>({});
 
   useEffect(() => {
@@ -153,6 +153,13 @@ const CustomerPortalLanding = ({ portalUrl }: { portalUrl: string }): JSX.Elemen
             isPortal={true}
             portalBrandName={portalData.brandName || "ENGINEERS"}
             portalLogo={portalData.logo}
+            portalTagline={portalData.brandTagline || ''}
+            portalSocialLinks={{
+              facebook: portalData.facebookUrl,
+              linkedin: portalData.linkedInUrl,
+              instagram: portalData.instagramUrl,
+              twitter: portalData.twitterUrl
+            }}
           />
         </div>
       );
@@ -167,6 +174,13 @@ const CustomerPortalLanding = ({ portalUrl }: { portalUrl: string }): JSX.Elemen
           isPortal={true}
           portalBrandName={portalData.brandName || "ENGINEERS"}
           portalLogo={portalData.logo}
+          portalTagline={portalData.brandTagline || ''}
+          portalSocialLinks={{
+            facebook: portalData.facebookUrl,
+            linkedin: portalData.linkedInUrl,
+            instagram: portalData.instagramUrl,
+            twitter: portalData.twitterUrl
+          }}
         />
       );
     case 'customerDashboard':

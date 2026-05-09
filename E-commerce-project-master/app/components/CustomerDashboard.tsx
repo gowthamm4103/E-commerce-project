@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Wallet, Award, ChevronDown, ChevronRight, Check, Copy, X, Menu, Plus } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
-import { walletAPI, mlmAPI, authAPI } from '../lib/api';
+import { walletAPI, mlmAPI, authAPI, setAuthErrorHandler, clearAuthErrorHandler, getToken } from '../lib/api';
 import type { PageName, UserData } from '../types';
 import CategoryPage from './CategoryPage';
 import ShoppingCartPage from './ShoppingCartPage';
@@ -42,6 +42,8 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
 
   // Portal management state
   const [showPortalManagement, setShowPortalManagement] = useState(false);
+  const [hasPortal, setHasPortal] = useState(false);
+  const [portalRefreshKey, setPortalRefreshKey] = useState(0); // Used to trigger portal status refresh
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -230,9 +232,62 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
     };
   };
   
+  // Load portal status
+  React.useEffect(() => {
+    const loadPortalStatus = async () => {
+      // Check if token exists before making API calls
+      const token = getToken();
+      if (!token) {
+        console.warn('No authentication token found. Portal status unavailable.');
+        setHasPortal(false);
+        return;
+      }
+
+      try {
+        const { portalsAPI } = await import('../lib/api');
+        const res = await portalsAPI.getMyPortals();
+        console.log('Portal status check:', res);
+        if (res.success && res.portals && res.portals.length > 0) {
+          setHasPortal(true);
+        } else {
+          setHasPortal(false);
+        }
+      } catch (err) {
+        console.error('Failed to load portal status:', err);
+        // If API fails, assume no portal
+        setHasPortal(false);
+      }
+    };
+    loadPortalStatus();
+  }, [user.userId, portalRefreshKey]);
+
+  // Set up auth error handler
+  React.useEffect(() => {
+    const handleAuthError = () => {
+      console.error('Authentication failed. Please login again.');
+      // Optionally redirect to login or show a message
+      if (onLogout) {
+        onLogout();
+      }
+    };
+    
+    setAuthErrorHandler(handleAuthError);
+    
+    return () => {
+      clearAuthErrorHandler();
+    };
+  }, [onLogout]);
+
   // Load data when component mounts
   React.useEffect(() => {
     const loadData = async () => {
+      // Check if token exists before making API calls
+      const token = getToken();
+      if (!token) {
+        console.warn('No authentication token found. Some features may be unavailable.');
+        return;
+      }
+
       try {
         // Load user data from API
         const userRes = await mlmAPI.getUserById(user?.userId || '');
@@ -1664,7 +1719,10 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
       <ManageCustomerPortal
         user={user}
         onLogout={onLogout}
-        onSwitchToDashboard={() => setShowPortalManagement(false)}
+        onSwitchToDashboard={() => {
+          setShowPortalManagement(false);
+          setPortalRefreshKey(prev => prev + 1); // Trigger portal status refresh
+        }}
       />
     );
   }
@@ -1695,6 +1753,7 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
   onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
   onPortalClick={handleSwitchToPortal}
   currentPage={currentPage}
+  hasPortal={hasPortal}
 />
 
 
@@ -1830,6 +1889,21 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
               >
                 Add Bank Account
               </button>
+              {hasPortal && (
+                <button
+                  onClick={() => {
+                    handleSwitchToPortal();
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm font-medium ${
+                    showPortalManagement 
+                      ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Manage Customer Portal
+                </button>
+              )}
             </div>
           </div>
         </div>

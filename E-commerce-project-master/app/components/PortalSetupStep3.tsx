@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 
-
 interface PortalSetupStep3Props {
   onContinue: (data?: unknown) => void;
   onBack: () => void;
@@ -11,152 +10,205 @@ interface PortalSetupStep3Props {
 }
 
 const PortalSetupStep3 = ({ onContinue, onBack, portalData, setPortalData }: PortalSetupStep3Props): JSX.Element => {
-  const [logo, setLogo] = useState(portalData.logo || null);
-  const [favicon, setFavicon] = useState(portalData.favicon || null);
-  const [brandMessage, setBrandMessage] = useState(portalData.brandMessage || "");
+  const [facebookUrl, setFacebookUrl] = useState<string>(portalData.facebookUrl as string || '');
+  const [linkedInUrl, setLinkedInUrl] = useState<string>(portalData.linkedInUrl as string || '');
+  const [instagramUrl, setInstagramUrl] = useState<string>(portalData.instagramUrl as string || '');
+  const [twitterUrl, setTwitterUrl] = useState<string>(portalData.twitterUrl as string || '');
 
-  const handleLogoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 500 * 1024) {
-        alert("Logo size must be less than 500 KB");
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogo(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFaviconUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFavicon(reader.result);
-      };
-      reader.readAsDataURL(file);
+  const validateUrl = (url: string): boolean => {
+    if (!url.trim()) return true; // Empty is valid (optional field)
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
     }
   };
 
   const handleContinue = () => {
-    if (!brandMessage.trim()) {
-      alert("Please enter a brand message");
-      return;
+    // Validate all URLs
+    const urls = { facebookUrl, linkedInUrl, instagramUrl, twitterUrl };
+    for (const [key, value] of Object.entries(urls)) {
+      if (!validateUrl(value)) {
+        alert(`Please enter a valid URL for ${key.replace(/([A-Z])/g, ' $1').trim()}`);
+        return;
+      }
     }
 
     setPortalData({
       ...portalData,
-      logo,
-      favicon,
-      brandMessage
+      facebookUrl,
+      linkedInUrl,
+      instagramUrl,
+      twitterUrl
     });
 
     onContinue();
   };
 
+  const SocialInput = ({ 
+    label, 
+    value, 
+    onChange, 
+    placeholder,
+    icon 
+  }: { 
+    label: string; 
+    value: string; 
+    onChange: (value: string) => void; 
+    placeholder: string;
+    icon: React.ReactNode;
+  }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label}
+      </label>
+      <div className="flex items-center">
+        <div className="px-3 py-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-gray-500">
+          {icon}
+        </div>
+        <input
+          type="url"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+          placeholder={placeholder}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-white p-8 rounded-xl shadow-xl">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Step 3: Logo and Branding Customization</h2>
+      <div className="mb-6">
+        <div className="flex items-center mb-2">
+          <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-3">
+            3
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800">Social Media Links</h2>
+        </div>
+        <p className="text-gray-600 ml-11">Add your social media profiles (optional)</p>
+      </div>
       
       <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Logo Upload</label>
-          <div className="flex items-center space-x-4">
-            <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-              {logo ? (
-                <img src={logo} alt="Logo" className="w-full h-full object-contain rounded-lg" />
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              )}
-            </div>
-            <div>
-              <input
-                type="file"
-                id="logo-upload"
-                accept="image/png, image/jpg, image/jpeg, image/svg+xml"
-                onChange={handleLogoUpload}
-                className="hidden"
-              />
-              <label
-                htmlFor="logo-upload"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
-              >
-                Choose File
-              </label>
-              <p className="text-xs text-gray-500 mt-1">PNG, JPG, SVG (Max: 500 KB)</p>
-            </div>
-          </div>
+        <p className="text-sm text-gray-600">
+          Configure your social media profile URLs. These will be displayed as icons in your portal header. 
+          Leave blank if you don't want to display a particular social media link.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SocialInput
+            label="Facebook URL"
+            value={facebookUrl}
+            onChange={setFacebookUrl}
+            placeholder="https://facebook.com/your-page"
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            }
+          />
+
+          <SocialInput
+            label="LinkedIn URL"
+            value={linkedInUrl}
+            onChange={setLinkedInUrl}
+            placeholder="https://linkedin.com/company/your-company"
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            }
+          />
+
+          <SocialInput
+            label="Instagram URL"
+            value={instagramUrl}
+            onChange={setInstagramUrl}
+            placeholder="https://instagram.com/your-profile"
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+              </svg>
+            }
+          />
+
+          <SocialInput
+            label="X (Twitter) URL"
+            value={twitterUrl}
+            onChange={setTwitterUrl}
+            placeholder="https://twitter.com/your-profile"
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            }
+          />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Favicon Upload</label>
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-              {favicon ? (
-                <img src={favicon} alt="Favicon" className="w-full h-full object-contain rounded-lg" />
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+        {/* Preview of Social Icons */}
+        {(facebookUrl || linkedInUrl || instagramUrl || twitterUrl) && (
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Social Icons Preview</h3>
+            <div className="flex items-center space-x-4">
+              {facebookUrl && (
+                <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </a>
+              )}
+              {linkedInUrl && (
+                <a href={linkedInUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:text-blue-900">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </a>
+              )}
+              {instagramUrl && (
+                <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                  </svg>
+                </a>
+              )}
+              {twitterUrl && (
+                <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-gray-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </a>
               )}
             </div>
-            <div>
-              <input
-                type="file"
-                id="favicon-upload"
-                accept="image/svg+xml, image/png, image/x-icon"
-                onChange={handleFaviconUpload}
-                className="hidden"
-              />
-              <label
-                htmlFor="favicon-upload"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
-              >
-                Choose File
-              </label>
-              <p className="text-xs text-gray-500 mt-1">SVG, PNG, ICO (16×16 pixels)</p>
-            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Icons will appear in the portal header. Click to test the links.
+            </p>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Brand Message</label>
-          <textarea
-            value={brandMessage}
-            onChange={(e) => setBrandMessage(e.target.value)}
-            maxLength="250"
-            rows="4"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-            placeholder="Enter your brand message (max 250 characters)"
-          ></textarea>
-          <p className="text-xs text-gray-500 mt-1">{brandMessage.length}/250 characters</p>
-        </div>
+        )}
       </div>
 
-      <div className="flex justify-between mt-8">
+      <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
         <button
           onClick={onBack}
-          className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition"
+          className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition flex items-center"
         >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
           Back
         </button>
         <button
           onClick={handleContinue}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition"
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition flex items-center"
         >
           Continue
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
         </button>
       </div>
     </div>
   );
 }
-
-
 
 export default PortalSetupStep3;

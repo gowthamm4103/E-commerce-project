@@ -37,6 +37,17 @@ export const removeUserSession = (): void => {
 };
 
 // ─── Base fetch helper ──────────────────────────────────────────────
+// Callback for authentication errors - can be set by components to handle auth failures
+let onAuthError: (() => void) | null = null;
+
+export const setAuthErrorHandler = (handler: () => void) => {
+  onAuthError = handler;
+};
+
+export const clearAuthErrorHandler = () => {
+  onAuthError = null;
+};
+
 async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {},
@@ -59,6 +70,15 @@ async function apiFetch<T = unknown>(
   const data = await res.json();
 
   if (!res.ok) {
+    // Handle authentication errors
+    if (res.status === 401) {
+      // Clear invalid token
+      removeToken();
+      // Notify the app about auth failure
+      if (onAuthError) {
+        onAuthError();
+      }
+    }
     throw new Error(data.error || 'Request failed');
   }
 

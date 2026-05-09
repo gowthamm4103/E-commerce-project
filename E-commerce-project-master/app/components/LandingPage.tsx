@@ -41,6 +41,7 @@ const LandingPage = ({
   const [deliveryInfo, setDeliveryInfo] = useState(null);
   const [pincodeChecked, setPincodeChecked] = useState(false);
   const [selectionModalOpen, setSelectionModalOpen] = useState(false);
+  const [userIsLoggedIn, setUserIsLoggedIn] = useState(false);
 
   const calculateGSTInclusivePrice = (price, category) => {
     let gstRate = 0.18;
@@ -76,6 +77,22 @@ const LandingPage = ({
   const companyDropdownRef = useRef(null);
 
   const { addToCart, addToWishlist, isLoggedIn } = React.useContext(CartContext);
+
+  // Check login status on mount and when it changes
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      if (typeof isLoggedIn === 'function') {
+        setUserIsLoggedIn(isLoggedIn());
+      } else {
+        setUserIsLoggedIn(!!isLoggedIn);
+      }
+    };
+    
+    checkLoginStatus();
+    // Also check periodically in case login state changes
+    const interval = setInterval(checkLoginStatus, 1000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
 
   // Auto-scroll products
   useEffect(() => {
@@ -168,11 +185,16 @@ const LandingPage = ({
                 Discover premium fashion. Connect customers and brand owners in
                 a network built for the future of fashion.
               </p>
-              <div className="flex space-x-4">
-                <button className="px-5 py-2 text-sm font-bold text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors tracking-wide">
-                  Start Now
-                </button>
-              </div>
+              {!userIsLoggedIn && (
+                <div className="flex space-x-4">
+                  <button 
+                    onClick={() => onNavigateToSignup?.()}
+                    className="px-5 py-2 text-sm font-bold text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors tracking-wide"
+                  >
+                    Start Now
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="relative">

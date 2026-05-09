@@ -10,9 +10,24 @@ interface PortalRegistrationProps {
   isPortal?: boolean;
   portalBrandName?: string;
   portalLogo?: string | null;
+  portalTagline?: string;
+  portalSocialLinks?: {
+    facebook?: string;
+    linkedin?: string;
+    instagram?: string;
+    twitter?: string;
+  };
 }
 
-const PortalRegistration = ({ onSwitchView, parentInfo, isPortal = false, portalBrandName = "", portalLogo = null }: PortalRegistrationProps): JSX.Element => {
+const PortalRegistration = ({ 
+  onSwitchView, 
+  parentInfo, 
+  isPortal = false, 
+  portalBrandName = "", 
+  portalLogo = null,
+  portalTagline = '',
+  portalSocialLinks = {}
+}: PortalRegistrationProps): JSX.Element => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -72,7 +87,7 @@ const PortalRegistration = ({ onSwitchView, parentInfo, isPortal = false, portal
   };
 
   return (
-    <div className={`${!isPortal ? 'flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4' : ''}`}>
+    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 overflow-hidden">
       <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -83,9 +98,13 @@ const PortalRegistration = ({ onSwitchView, parentInfo, isPortal = false, portal
               {isPortal ? portalBrandName : "ENGINEERS"}
             </h1>
           </div>
-          <p className="text-gray-600 text-sm">
-            {isPortal ? "Customer Portal Registration" : "Portal Registration"}
-          </p>
+          {isPortal ? (
+            <p className="text-gray-600 text-medium">
+              {portalTagline || `Welcome to ${portalBrandName} Fashion`}
+            </p>
+          ) : (
+            <p className="text-gray-600 text-sm">Portal Registration</p>
+          )}
         </div>
 
         {error && (
@@ -102,7 +121,7 @@ const PortalRegistration = ({ onSwitchView, parentInfo, isPortal = false, portal
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-medium"
                 type="text"
                 placeholder="Parent ID"
-                value={parentInfo.parentId}
+                value={(parentInfo as any)?.parentId || ''}
                 readOnly
               />
             </div>
@@ -112,22 +131,22 @@ const PortalRegistration = ({ onSwitchView, parentInfo, isPortal = false, portal
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-medium"
                 type="text"
                 placeholder="Parent Name"
-                value={parentInfo.parentName}
+                value={(parentInfo as any)?.parentName || ''}
                 readOnly
               />
             </div>
           </div>
 
-          {isPortal && (
+         {/* {isPortal && (
             <div className="p-3 bg-blue-50 border border-blue-300 rounded-lg text-sm">
               <div className="font-semibold text-blue-800">
                 🌐 Portal Registration
               </div>
               <div className="text-xs mt-1 text-blue-700">
-                You're registering through {parentInfo.parentName}'s portal. You'll be placed as their direct child.
+                You're registering through {(parentInfo as any)?.parentName || 'parent'}'s portal. You'll be placed as their direct child.
               </div>
-            </div>
-          )}
+            </div> 
+          )} */}
 
           <input
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"

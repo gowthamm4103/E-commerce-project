@@ -29,21 +29,63 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
   const [portalData, setPortalData] = useState<any>(null);
   const [setupStep, setSetupStep] = useState(0);
   const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const companyDropdownRef = React.useRef(null);
+  
+  // Function to refresh portal data
+  const refreshPortalData = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await portalsAPI.getMyPortals();
+      console.log('Portal API response (refresh):', res);
+      if (res.success && res.portals && res.portals.length > 0) {
+        setPortalData(res.portals[0]);
+      } else {
+        setPortalData(null);
+      }
+    } catch (err) {
+      console.error('Failed to refresh portal data:', err);
+      setPortalData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
   
   // Load user data and portal data from API
   React.useEffect(() => {
     if (user.userId) {
       mlmAPI.getUserById(user.userId).then(res => {
         if (res.user) setUserData(res.user);
-      }).catch(() => {});
+      }).catch((err) => {
+        console.error('Failed to load user data:', err);
+      });
       
-      portalsAPI.getMyPortals().then(res => {
-        // Get the first (and only) portal for this user
-        if (res.portals && res.portals.length > 0) {
-          setPortalData(res.portals[0]);
+      // Load portal data
+      const loadPortalData = async () => {
+        try {
+          const res = await portalsAPI.getMyPortals();
+          console.log('Portal API response:', res);
+          // Get the first (and only) portal for this user
+          if (res.success && res.portals && res.portals.length > 0) {
+            const portal = res.portals[0];
+            console.log('Portal data loaded:', {
+              brandTagline: portal.brandTagline || '',
+              facebookUrl: portal.facebookUrl || '',
+              linkedInUrl: portal.linkedInUrl || '',
+              instagramUrl: portal.instagramUrl || '',
+              twitterUrl: portal.twitterUrl || ''
+            });
+            setPortalData(portal);
+          } else {
+            console.log('No portals found for user');
+            setPortalData(null);
+          }
+        } catch (err) {
+          console.error('Failed to load portal data:', err);
+          setPortalData(null);
         }
-      }).catch(() => {});
+      };
+      loadPortalData();
     }
   }, [user.userId]);
   
@@ -69,23 +111,39 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
     setSetupStep(prev => prev - 1);
   };
   
-  const handlePublishPortal = () => {
-    alert("Portal successfully customized!");
+  const handlePublishPortal = async () => {
     setSetupStep(0);
-    // Reload portal data from API
-    portalsAPI.getMyPortals().then(res => {
-      if (res.portals && res.portals.length > 0) {
-        setPortalData(res.portals[0]);
+    // Reload portal data from API to ensure we have the latest saved data
+    try {
+      const res = await portalsAPI.getMyPortals();
+      console.log('Portal data after publish:', res);
+      if (res.success && res.portals && res.portals.length > 0) {
+        const savedPortal = res.portals[0];
+        console.log('Saved portal values:', {
+          brandTagline: savedPortal.brandTagline,
+          facebookUrl: savedPortal.facebookUrl,
+          linkedInUrl: savedPortal.linkedInUrl,
+          instagramUrl: savedPortal.instagramUrl,
+          twitterUrl: savedPortal.twitterUrl
+        });
+        setPortalData(savedPortal);
+        // Show success message
+        alert("Portal successfully customized!");
+      } else {
+        alert("Portal published but could not load saved data. Please refresh the page.");
       }
-    }).catch(() => {});
+    } catch (err) {
+      console.error('Failed to reload portal data after publish:', err);
+      alert("Portal published but encountered an error loading data. Please refresh the page.");
+    }
     // Redirect to dashboard after publishing
     onSwitchToDashboard();
   };
   
   const handlePreviewPortal = () => {
-    // Open the portal in a new tab for preview
+    // Open the portal in a new tab for preview - directly to login page
     if (portalData) {
-      window.open(`${window.location.origin}/${user.userId}/portal/${portalData.url}`, '_blank');
+      window.open(`${window.location.origin}/${user.userId}/portal/${portalData.url}?preview=true`, '_blank');
     } else {
       alert("Please set up your portal first");
     }
@@ -99,9 +157,11 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
             onContinue={handleSetupStepContinue}
             onBack={() => setSetupStep(0)}
             parentInfo={{
-              parentId: user.userId,
-              parentName: user.name
+              parentId: user.userId as string,
+              parentName: user.name as string
             }}
+            portalData={portalData || {}}
+            setPortalData={setPortalData}
           />
         );
       case 2:
@@ -156,52 +216,109 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
             
             {portalData ? (
               <div className="space-y-6">
+                {/* Brand Identity Section */}
                 <div className="bg-blue-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">Portal Details</h3>
+                  <h3 className="text-lg font-semibold mb-4">Brand Identity</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm text-gray-500">Brand Name</span>
-                      <p className="font-medium">{portalData.brandName}</p>
+                      <p className="font-medium">{portalData.brandName || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Brand Tagline</span>
+                      <p className="font-medium">{portalData.brandTagline || 'Not set'}</p>
                     </div>
                     <div>
                       <span className="text-sm text-gray-500">Portal URL</span>
                       <div className="flex items-center">
-                        <p className="font-medium mr-2">{window.location.origin}/{user.userId}/portal/{portalData.url}</p>
+                        <p className="font-medium mr-2 text-sm truncate">{window.location.origin}/{user.userId}/portal/{portalData.url}</p>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(`${window.location.origin}/${user.userId}/portal/${portalData.url}`);
                             alert("Link copied to clipboard!");
                           }}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-blue-600 hover:text-blue-800 flex-shrink-0"
                         >
                           <Copy size={16} />
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Social Media Section */}
+                <div className="bg-green-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">Social Media Links</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-sm text-gray-500">Last Updated</span>
-                      <p className="font-medium">{new Date(portalData.updatedAt).toLocaleString()}</p>
+                      <span className="text-sm text-gray-500">Facebook</span>
+                      <p className="font-medium text-sm truncate">
+                        {portalData.facebookUrl ? (
+                          <a href={portalData.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {portalData.facebookUrl}
+                          </a>
+                        ) : 'Not configured'}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-500">Created</span>
-                      <p className="font-medium">{new Date(portalData.createdAt).toLocaleString()}</p>
+                      <span className="text-sm text-gray-500">LinkedIn</span>
+                      <p className="font-medium text-sm truncate">
+                        {portalData.linkedInUrl ? (
+                          <a href={portalData.linkedInUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {portalData.linkedInUrl}
+                          </a>
+                        ) : 'Not configured'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Instagram</span>
+                      <p className="font-medium text-sm truncate">
+                        {portalData.instagramUrl ? (
+                          <a href={portalData.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {portalData.instagramUrl}
+                          </a>
+                        ) : 'Not configured'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">X (Twitter)</span>
+                      <p className="font-medium text-sm truncate">
+                        {portalData.twitterUrl ? (
+                          <a href={portalData.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {portalData.twitterUrl}
+                          </a>
+                        ) : 'Not configured'}
+                      </p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex flex-col md:flex-row gap-4">
-                  <button
-                    onClick={() => setSetupStep(1)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Edit Portal
-                  </button>
-                  <button
-                    onClick={handlePreviewPortal}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                  >
-                    Preview Portal
-                  </button>
+                {/* Timestamps and Actions */}
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <span className="text-sm text-gray-500">Created</span>
+                      <p className="font-medium">{new Date(portalData.createdAt).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Last Updated</span>
+                      <p className="font-medium">{new Date(portalData.updatedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <button
+                      onClick={() => setSetupStep(1)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      Edit Portal
+                    </button>
+                    <button
+                      onClick={handlePreviewPortal}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      Preview Portal
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
