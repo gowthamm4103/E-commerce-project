@@ -1723,6 +1723,11 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
           setShowPortalManagement(false);
           setPortalRefreshKey(prev => prev + 1); // Trigger portal status refresh
         }}
+        onNavigateToTab={(tab: string) => {
+          setShowPortalManagement(false);
+          setPortalRefreshKey(prev => prev + 1); // Trigger portal status refresh
+          setActiveTab(tab);
+        }}
       />
     );
   }

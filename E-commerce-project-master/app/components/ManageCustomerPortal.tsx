@@ -17,9 +17,10 @@ interface ManageCustomerPortalProps {
   user: UserData;
   onLogout: () => void;
   onSwitchToDashboard: () => void;
+  onNavigateToTab?: (tab: string) => void;
 }
 
-const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCustomerPortalProps): JSX.Element => {
+const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard, onNavigateToTab }: ManageCustomerPortalProps): JSX.Element => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
@@ -397,12 +398,12 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
         </div>
       </div>
       
-      {/* Side Menu */}
+      {/* Side Menu - Consistent with CustomerDashboard navigation */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black opacity-50" onClick={() => setIsMenuOpen(false)}></div>
           <div className="relative flex flex-col w-64 bg-white h-full shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4">
               <div className="text-lg font-semibold">Menu</div>
               <button 
                 onClick={() => setIsMenuOpen(false)}
@@ -414,6 +415,97 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
             <div className="flex-1 overflow-y-auto py-2">
               <button
                 onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('profile');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('franchiseA');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Franchise A
+              </button>
+              <button
+                onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('franchiseB');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Franchise B
+              </button>
+              <button
+                onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('ewallet');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                E-Wallet
+              </button>
+              <button
+                onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('incomewallet');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Income Wallet
+              </button>
+              <button
+                onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('kyc');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                KYC Verification
+              </button>
+              <button
+                onClick={() => {
+                  if (onNavigateToTab) {
+                    onNavigateToTab('bank');
+                  } else {
+                    onSwitchToDashboard();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Add Bank Account
+              </button>
+              <button
+                onClick={() => {
                   setActiveTab('overview');
                   setIsMenuOpen(false);
                 }}
@@ -423,19 +515,7 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard }: ManageCus
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                Portal Overview
-              </button>
-              <button
-                onClick={() => {
-                  onSwitchToDashboard();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Dashboard
+                Manage Customer Portal
               </button>
             </div>
           </div>
