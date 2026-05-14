@@ -265,6 +265,7 @@ function BrandOwnerDashboard({
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     role: "standard_member",
     isActive: true,
   });
@@ -443,8 +444,8 @@ function BrandOwnerDashboard({
   }, [products]);
 
   const handleSaveTeamMember = async () => {
-    if (!newTeamMember.name || !newTeamMember.email || !newTeamMember.password) {
-      setTeamError("Name, email, and password are required.");
+    if (!newTeamMember.name || !newTeamMember.email) {
+      setTeamError("Name and email are required.");
       return;
     }
     try {
@@ -453,16 +454,16 @@ function BrandOwnerDashboard({
       const res = await businessAPI.createTeamMember({
         name: newTeamMember.name,
         email: newTeamMember.email,
-        password: newTeamMember.password,
         role: newTeamMember.role,
       });
       if (res.success) {
         setTeamMembers([...teamMembers, res.member]);
-        setTeamSuccess(`Team member created! Their Member ID is: ${res.member.memberId}`);
+        setTeamSuccess("Team member created successfully!");
         setNewTeamMember({
           name: "",
           email: "",
           password: "",
+          confirmPassword: "",
           role: "standard_member",
           isActive: true,
         });
@@ -690,8 +691,20 @@ function BrandOwnerDashboard({
             totalPayout: data.totalPayout || 0,
           });
         }
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
+      } catch (err: any) {
+        // Check if error is authentication-related
+        if (err?.message?.includes('token') || err?.message?.includes('Access denied') || err?.message?.includes('Authentication')) {
+          console.error('Authentication error - please log in again:', err);
+          // Clear invalid session
+          try {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+          } catch {}
+          // Trigger logout if onLogout is available
+          onLogout?.();
+        } else {
+          console.error('Failed to load dashboard data:', err);
+        }
       }
     };
     
@@ -6996,40 +7009,6 @@ function BrandOwnerDashboard({
               </div>
             )}
 
-            {/* Role Information Banner */}
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Team Member Roles</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-medium mt-0.5">Premium</span>
-                  <div>
-                    <span className="text-blue-800">Can add products and edit <strong>any</strong> product of the brand. Cannot delete products.</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full text-xs font-medium mt-0.5">Standard</span>
-                  <div>
-                    <span className="text-blue-800">Can add products and edit <strong>only their own</strong> products. Cannot delete products.</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-blue-600 mt-2">All product changes by team members require admin approval before going live.</p>
-            </div>
-
-            {/* Team Member Portal Access */}
-            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-gray-900 text-sm">Team Member Portal</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Team members can log in here to manage products using their Member ID and password.</p>
-              </div>
-              <button
-                onClick={() => setShowTeamMemberPortal(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium flex items-center gap-2 whitespace-nowrap"
-              >
-                <User size={16} />
-                Open Team Login
-              </button>
-            </div>
 
             {teamLoading ? (
               <div className="text-center py-12">
@@ -7078,12 +7057,6 @@ function BrandOwnerDashboard({
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        Member ID
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
                         Name
                       </th>
                       <th
@@ -7115,9 +7088,6 @@ function BrandOwnerDashboard({
                   <tbody className="bg-white divide-y divide-gray-200">
                     {teamMembers.map((member) => (
                       <tr key={member._id || member.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
-                          {member.memberId || "—"}
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {member.name}
                         </td>
@@ -7146,8 +7116,8 @@ function BrandOwnerDashboard({
                             {member.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative">
-                          <div className="relative">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="relative inline-block text-left">
                             <button
                               onClick={() =>
                                 setActionMenuOpen(
@@ -7162,7 +7132,7 @@ function BrandOwnerDashboard({
                             </button>
 
                             {actionMenuOpen === (member._id || member.id) && (
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200" style={{ minWidth: '12rem' }}>
                                 <div className="py-1">
                                   <button
                                     onClick={() => {
@@ -7279,29 +7249,6 @@ function BrandOwnerDashboard({
                   placeholder="Enter team member email"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Login Password *
-                </label>
-                <input
-                  type="password"
-                  value={newTeamMember.password}
-                  onChange={(e) =>
-                    setNewTeamMember({
-                      ...newTeamMember,
-                      password: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Create a login password for this member"
-                  required
-                  minLength={6}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  The member will use their Member ID and this password to log in.
-                </p>
               </div>
 
               <div>

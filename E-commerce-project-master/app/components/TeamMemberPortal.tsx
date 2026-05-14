@@ -25,11 +25,11 @@ interface TeamMemberPortalProps {
 
 interface TeamMemberData {
   _id: string;
-  memberId: string;
   name: string;
   email: string;
   role: "standard_member" | "premium_member";
   ownerId: string;
+  isActive: boolean;
 }
 
 interface ProductData {
@@ -95,8 +95,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
   const [token, setToken] = useState<string | null>(null);
 
   // Login form
-  const [memberId, setMemberId] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -387,8 +386,8 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
   }, [isLoggedIn, token]);
 
   const handleLogin = async () => {
-    if (!memberId || !password) {
-      setLoginError("Member ID and password are required.");
+    if (!email) {
+      setLoginError("Email is required.");
       return;
     }
     try {
@@ -398,7 +397,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
       // Temporarily set the token header for this request
       const originalToken = localStorage.getItem("token");
 
-      const res = await businessAPI.teamMemberLogin({ memberId, password });
+      const res = await businessAPI.teamMemberLogin({ email });
 
       if (res.success) {
         // Store team member session separately
@@ -428,8 +427,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
     setMemberData(null);
     setToken(null);
     setProducts([]);
-    setMemberId("");
-    setPassword("");
+    setEmail("");
   };
 
   const loadProducts = async () => {
@@ -534,7 +532,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
     if (!memberData) return false;
     if (memberData.role === "premium_member") return true;
     // standard_member can only edit their own
-    return product.addedBy === memberData.memberId;
+    return product.addedBy === memberData.email;
   };
 
   const getRoleBadge = () => {
@@ -560,15 +558,6 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Back button */}
-          <button
-            onClick={onBack}
-            className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft size={18} />
-            <span>Back to Dashboard</span>
-          </button>
-
           <div className="bg-white rounded-2xl shadow-xl p-8">
             {/* Header */}
             <div className="text-center mb-8">
@@ -576,9 +565,6 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
                 <User size={28} className="text-blue-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">Team Member Login</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Log in with your Member ID and password
-              </p>
             </div>
 
             {loginError && (
@@ -597,33 +583,16 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
             >
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Member ID
+                  Email ID
                 </label>
                 <div className="relative">
                   <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="text"
-                    value={memberId}
-                    onChange={(e) => setMemberId(e.target.value)}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g. TM-USR001-001"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your password"
+                    placeholder="Enter your email ID"
                     required
                   />
                 </div>
@@ -645,7 +614,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
             </form>
 
             <p className="text-xs text-center text-gray-400 mt-6">
-              Your brand owner will provide your Member ID and password.
+              Enter the email address provided by your brand owner.
             </p>
           </div>
         </div>
@@ -676,7 +645,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
                 {getRoleBadge()}
               </div>
               <p className="text-xs text-gray-500">
-                ID: {memberData?.memberId} • {memberData?.email}
+                {memberData?.email}
               </p>
             </div>
           </div>
@@ -1472,8 +1441,8 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
                     <label className="block text-sm font-medium text-gray-700 mb-2">SKU Codes *</label>
                     <button type="button" onClick={() => {
                       if (editingProduct.sizes && editingProduct.colors) {
-                        const sizes = editingProduct.sizes.split(", ");
-                        const colors = editingProduct.colors.split(", ");
+                        const sizes = (editingProduct.sizes || "").split(", ").filter(Boolean);
+                        const colors = (editingProduct.colors || "").split(", ").filter(Boolean);
                         const brandPrefix = editingProduct.brandName ? editingProduct.brandName.substring(0, 3).toUpperCase() : "BRD";
                         const categoryPrefix = editingProduct.subCategory ? editingProduct.subCategory.substring(0, 3).toUpperCase() : "CAT";
                         const skuCodes: { size: string; color: string; sku: string }[] = [];

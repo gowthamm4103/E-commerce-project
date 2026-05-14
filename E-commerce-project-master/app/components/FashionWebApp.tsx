@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { CartProvider } from '../context/CartContext';
-import { getUserSession, removeUserSession, removeToken } from '../lib/api';
+import { getUserSession, removeUserSession, removeToken, getToken } from '../lib/api';
 import Header from './Header';
 import Footer from './Footer';
 import LandingPage from './LandingPage';
@@ -153,7 +153,14 @@ const FashionWebApp = (): JSX.Element => {
   // Restore user session from localStorage on mount
   useEffect(() => {
     const savedUser = getUserSession();
+    const token = getToken();
     if (savedUser && savedUser.userType) {
+      // Check if token exists - if not, the session is invalid
+      if (!token) {
+        console.warn('User session found but no authentication token. Please log in again.');
+        removeUserSession();
+        return;
+      }
       setCurrentUser(savedUser as UserData);
       setUserType(savedUser.userType as UserType);
       setIsLoggedIn(true);

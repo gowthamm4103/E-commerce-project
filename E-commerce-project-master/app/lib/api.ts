@@ -60,6 +60,9 @@ async function apiFetch<T = unknown>(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    // Log warning for debugging - token is missing
+    console.warn('API Warning: No authentication token found in localStorage. Request may fail if endpoint requires authentication.');
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -336,8 +339,8 @@ export const businessAPI = {
   deleteTeamMember: (id: string) =>
     apiFetch(`/business/team/${id}`, { method: 'DELETE' }),
 
-  // Team member login
-  teamMemberLogin: (body: { memberId: string; password: string }) =>
+  // Team member login (email-only authentication)
+  teamMemberLogin: (body: { email: string }) =>
     apiFetch<{ success: boolean; member: any; token: string }>('/business/team/login', {
       method: 'POST', body: JSON.stringify(body),
     }),

@@ -189,9 +189,9 @@ exports.getTeamMembers = async (req, res) => {
 
 exports.createTeamMember = async (req, res) => {
   try {
-    const { name, email, password, role, permissions } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, error: 'Name, email, and password are required.' });
+    const { name, email, role, permissions } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ success: false, error: 'Name and email are required.' });
     }
 
     // Check for existing member with same email under this owner
@@ -200,30 +200,18 @@ exports.createTeamMember = async (req, res) => {
       return res.status(400).json({ success: false, error: 'A team member with this email already exists.' });
     }
 
-    // Generate memberId: TM + ownerId + sequential number
-    const memberCount = await TeamMember.countDocuments({ ownerId: req.userId });
-    const memberId = `TM-${req.userId}-${String(memberCount + 1).padStart(3, '0')}`;
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     const validRole = ['standard_member', 'premium_member'].includes(role) ? role : 'standard_member';
 
     const member = new TeamMember({
-      memberId,
       name,
       email,
-      password: hashedPassword,
       role: validRole,
       permissions: permissions || [],
       ownerId: req.userId,
     });
 
     await member.save();
-    // Don't return password
-    const memberObj = member.toObject();
-    delete memberObj.password;
-    return res.status(201).json({ success: true, member: memberObj });
+    return res.status(201).json({ success: true, member });
   } catch (error) {
     console.error('Create team member error:', error);
     return res.status(500).json({ success: false, error: 'Failed to add team member.' });
@@ -364,36 +352,28 @@ exports.exportInventory = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-//  TEAM MEMBER LOGIN
+//  TEAM MEMBER LOGIN (Email-only authentication)
 // ═══════════════════════════════════════════════════════════════════
 
 exports.teamMemberLogin = async (req, res) => {
   try {
-    const { memberId, password } = req.body;
-    if (!memberId || !password) {
-      return res.status(400).json({ success: false, error: 'Member ID and password are required.' });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required.' });
     }
 
-    const member = await TeamMember.findOne({ memberId, isActive: true });
+    const member = await TeamMember.findOne({ email, isActive: true });
     if (!member) {
-      return res.status(401).json({ success: false, error: 'Invalid member ID or password.' });
-    }
-
-    const isMatch = await bcrypt.compare(password, member.password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, error: 'Invalid member ID or password.' });
+      return res.status(401).json({ success: false, error: 'Access denied. Invalid or inactive team member.' });
     }
 
     const token = jwt.sign(
-      { userId: member.ownerId, memberId: member.memberId, memberRole: member.role },
+      { userId: member.ownerId, email: member.email, memberRole: member.role, isTeamMember: true },
       process.env.JWT_SECRET || 'engineers_secret_key',
       { expiresIn: '7d' }
     );
 
-    const memberObj = member.toObject();
-    delete memberObj.password;
-
-    return res.json({ success: true, member: memberObj, token });
+    return res.json({ success: true, member, token });
   } catch (error) {
     console.error('Team member login error:', error);
     return res.status(500).json({ success: false, error: 'Login failed.' });
@@ -410,7 +390,7 @@ exports.teamMemberLogin = async (req, res) => {
 
 exports.teamMemberAddProduct = async (req, res) => {
   try {
-    const payload = { ...req.body, ownerId: req.userId, addedBy: req.memberId };
+    const payload = { ...req.body, ownerId: req.userId, addedBy: req.email };
 
     const cr = new ChangeRequest({
       entityType: 'product',
@@ -419,8 +399,8 @@ exports.teamMemberAddProduct = async (req, res) => {
       payload,
       previousData: null,
       ownerId: req.userId,
-      ownerName: `Team: ${req.memberId}`,
-      summary: `[${req.memberId}] Add new product: ${payload.name || 'Untitled'}`,
+      ownerName: `Team: ${req.email}`,
+      summary: `[${req.email}] Add new product: ${payload.name || 'Untitled'}`,
     });
     await cr.save();
 
@@ -448,7 +428,7 @@ exports.teamMemberEditProduct = async (req, res) => {
     }
 
     // standard_member can only edit products they added
-    if (req.memberRole === 'standard_member' && product.addedBy !== req.memberId) {
+    if (req.memberRole === 'standard_member' && product.addedBy !== req.email) {
       return res.status(403).json({ 
         success: false, 
         error: 'Standard members can only edit products they added.' 
@@ -464,8 +444,8 @@ exports.teamMemberEditProduct = async (req, res) => {
       payload: req.body,
       previousData: product.toObject(),
       ownerId: req.userId,
-      ownerName: `Team: ${req.memberId}`,
-      summary: `[${req.memberId}] Update product: ${product.name}`,
+      ownerName: `Team: ${req.email}`,
+      summary: `[${req.email}] Update product: ${product.name}`,
     });
     await cr.save();
 

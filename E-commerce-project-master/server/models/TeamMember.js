@@ -1,10 +1,8 @@
 const mongoose = require('mongoose');
 
 const teamMemberSchema = new mongoose.Schema({
-  memberId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   email: { type: String, required: true },
-  password: { type: String, required: true },
   role: { 
     type: String, 
     enum: ['standard_member', 'premium_member'], 
