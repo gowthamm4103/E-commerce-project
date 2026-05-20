@@ -39,7 +39,7 @@ const TeamPortalLanding = ({ portalUrl }: { portalUrl: string }): JSX.Element =>
     });
   }, [portalUrl]);
 
-  if (loading) {
+  if (loading) { 
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">
         <div className="text-center">
@@ -70,19 +70,16 @@ const TeamPortalLanding = ({ portalUrl }: { portalUrl: string }): JSX.Element =>
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">
       {/* Portal branding header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-center">
+      <div className="bg-white shadow-sm">
+        <div className="max-w-8xl mx-auto px-4 py-3 flex items-center justify-start">
           {portalData?.logo && (
-            <img src={portalData.logo} alt="Portal Logo" className="h-8 mr-3" />
+            <img src={portalData.logo} alt="Portal Logo" className="h-8" />
           )}
-          <h1 className="text-xl font-bold text-gray-800">
-            {portalData?.brandName || "Team Portal"}
-          </h1>
         </div>
       </div>
 
       {/* Team Member Portal (login + product management) */}
-      <TeamMemberPortal onBack={() => router.push('/')} />
+      <TeamMemberPortal onBack={() => router.push('/')} brandName={portalData?.brandName || ''} />
     </div>
   );
 };

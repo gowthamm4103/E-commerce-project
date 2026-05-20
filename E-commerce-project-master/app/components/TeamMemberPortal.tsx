@@ -21,6 +21,7 @@ import { businessAPI } from "../lib/api";
 
 interface TeamMemberPortalProps {
   onBack: () => void;
+  brandName?: string;
 }
 
 interface TeamMemberData {
@@ -88,7 +89,7 @@ interface ProductData {
   [key: string]: any;
 }
 
-export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
+export default function TeamMemberPortal({ onBack, brandName }: TeamMemberPortalProps) {
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberData, setMemberData] = useState<TeamMemberData | null>(null);
@@ -102,10 +103,119 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
   // Product management
   const [products, setProducts] = useState<ProductData[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
-  const [activeView, setActiveView] = useState<"list" | "add" | "edit">("list");
+  const [activeView, setActiveView] = useState<"list" | "add" | "edit" | "addaccessory">("list");
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Accessory form state
+  const [newAccessory, setNewAccessory] = useState<{ [key: string]: any; images: string[] }>({
+    name: "",
+    brandName: "",
+    category: "",
+    subCategory: "",
+    material: "",
+    color: "",
+    size: "",
+    dimensions: "",
+    weight: "",
+    price: "",
+    mrp: "",
+    sellingPrice: "",
+    stockQuantity: "",
+    sku: "",
+    hsnCode: "",
+    shortDescription: "",
+    fullDescription: "",
+    keyFeatures: "",
+    careInstructions: "",
+    images: [] as string[],
+    videoLink: "",
+    instagramLink: "",
+    packageDimensions: "",
+    deliveryAvailability: "",
+    codOption: "",
+    sellerAddress: "",
+    returnPolicy: "",
+    gstPercentage: "",
+    manufacturerDetails: "",
+    countryOfOrigin: "",
+    warranty: "",
+    specialFeatures: "",
+    colorInput: "",
+    sizeInput: "",
+    skuCodes: [] as any[],
+    gender: "",
+    occasion: "",
+    finish: "",
+    bagType: "",
+    compartments: "",
+    metalType: "",
+    gemstoneType: "",
+    plating: "",
+    watchType: "",
+    bandMaterial: "",
+    waterResistance: "",
+    adjustability: "",
+    secondaryMaterial: "",
+    packagingType: "",
+    tags: "",
+    warehouseLocation: "",
+  });
+
+  const getEmptyAccessoryForm = () => ({
+    name: "",
+    brandName: "",
+    category: "",
+    subCategory: "",
+    material: "",
+    color: "",
+    size: "",
+    dimensions: "",
+    weight: "",
+    price: "",
+    mrp: "",
+    sellingPrice: "",
+    stockQuantity: "",
+    sku: "",
+    hsnCode: "",
+    shortDescription: "",
+    fullDescription: "",
+    keyFeatures: "",
+    careInstructions: "",
+    images: [] as string[],
+    videoLink: "",
+    instagramLink: "",
+    packageDimensions: "",
+    deliveryAvailability: "",
+    codOption: "",
+    sellerAddress: "",
+    returnPolicy: "",
+    gstPercentage: "",
+    manufacturerDetails: "",
+    countryOfOrigin: "",
+    warranty: "",
+    specialFeatures: "",
+    colorInput: "",
+    sizeInput: "",
+    skuCodes: [] as any[],
+    gender: "",
+    occasion: "",
+    finish: "",
+    bagType: "",
+    compartments: "",
+    metalType: "",
+    gemstoneType: "",
+    plating: "",
+    watchType: "",
+    bandMaterial: "",
+    waterResistance: "",
+    adjustability: "",
+    secondaryMaterial: "",
+    packagingType: "",
+    tags: "",
+    warehouseLocation: "",
+  });
 
   // New product form — mirrors BrandOwnerDashboard productForm
   const [newProduct, setNewProduct] = useState<{ [key: string]: any; images: string[] }>({
@@ -457,6 +567,68 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
     }
   };
 
+  // Accessory image upload helpers
+  const handleAccessoryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files: File[] = Array.from(e.target.files || []);
+    const readers = files.map((file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+    Promise.all(readers).then((images) => {
+      setNewAccessory({ ...newAccessory, images: [...newAccessory.images, ...images] });
+    });
+  };
+
+  const removeAccessoryImage = (index: number) => {
+    setNewAccessory({
+      ...newAccessory,
+      images: newAccessory.images.filter((_: string, i: number) => i !== index),
+    });
+  };
+
+  const handleAddAccessory = async () => {
+    if (!newAccessory.name) {
+      setErrorMessage("Accessory name is required.");
+      return;
+    }
+    try {
+      setProductsLoading(true);
+      setErrorMessage(null);
+
+      const originalToken = localStorage.getItem("token");
+      localStorage.setItem("token", token!);
+
+      const { colorInput, sizeInput, ...accessoryData } = newAccessory;
+      const res = await businessAPI.teamMemberAddProduct({
+        ...accessoryData,
+        category: 'accessories',
+        mrp: parseFloat(newAccessory.mrp) || 0,
+        sellingPrice: parseFloat(newAccessory.sellingPrice) || 0,
+        price: parseFloat(newAccessory.price) || 0,
+        stockQuantity: parseInt(newAccessory.stockQuantity) || 0,
+      });
+
+      if (originalToken) {
+        localStorage.setItem("token", originalToken);
+      } else {
+        localStorage.removeItem("token");
+      }
+
+      if (res.success) {
+        setSuccessMessage("Accessory creation request submitted for admin approval!");
+        setNewAccessory(getEmptyAccessoryForm());
+        setActiveView("list");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to submit accessory.");
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
   const handleAddProduct = async () => {
     if (!newProduct.name) {
       setErrorMessage("Product name is required.");
@@ -561,10 +733,15 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <User size={28} className="text-blue-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Team Member Login</h2>
+              {brandName ? (
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{brandName}</h2>
+              ) : (
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <User size={28} className="text-gray-600" />
+                </div>
+              )}
+              {/*<h2 className="text-2xl font-bold text-gray-900">Team Member Login</h2>*/}
+              <p className="text-gray-600 text-medium mt-3">Welcome to Team Member Portal</p>
             </div>
 
             {loginError && (
@@ -582,16 +759,15 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
               className="space-y-5"
             >
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-4">
                   Email ID
                 </label>
                 <div className="relative">
-                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
                     placeholder="Enter your email ID"
                     required
                   />
@@ -601,7 +777,7 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                className="w-full bg-gradient-to-r from-gray-700 to-gray-900 text-white py-3 rounded-lg hover:from-gray-800 hover:to-black font-medium disabled:opacity-50 transition transform hover:scale-105"
               >
                 {loginLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -613,8 +789,8 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
               </button>
             </form>
 
-            <p className="text-xs text-center text-gray-400 mt-6">
-              Enter the email address provided by your brand owner.
+            <p className="text-gray-500 text-center text-medium mt-4">
+              Enter the email address shared by your brand owner
             </p>
           </div>
         </div>
@@ -628,15 +804,9 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="bg-white shadow-xs">
+        <div className="max-w-8xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft size={20} className="text-gray-600" />
-            </button>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold text-gray-900">
@@ -690,17 +860,17 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
           <div className="text-sm text-blue-800">
             {memberData?.role === "premium_member" ? (
               <span>
-                As a <strong>Premium Member</strong>, you can add new products and edit <strong>any</strong> product of the brand.
-                You cannot delete products — only the brand owner can.
+                As a <strong>Premium Member</strong>, you have permission to add new products and accessories, as well as edit <strong>all</strong> products and accessories within the brand.
+                However, only the brand owner can delete products.
               </span>
             ) : (
               <span>
-                As a <strong>Standard Member</strong>, you can add new products and edit <strong>only the products you have added</strong>.
-                You cannot delete products — only the brand owner can.
+                As a <strong>Standard Member</strong>, you can add new products and accessories, and edit <strong>only the products and accessories created by you</strong>.
+                However, product deletion is restricted to the brand owner only.
               </span>
             )}
             <span className="block text-xs text-blue-600 mt-1">
-              All product changes require admin approval before going live on the platform.
+              All product and accessory changes require admin approval before going live on the platform.
             </span>
           </div>
         </div>
@@ -730,6 +900,18 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
                   <Plus size={16} />
                   Add Product
                 </button>
+                <button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                    setNewAccessory(getEmptyAccessoryForm());
+                    setActiveView("addaccessory");
+                  }}
+                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  Add Accessory
+                </button>
               </div>
             </div>
 
@@ -743,12 +925,25 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
                 <Package className="mx-auto h-12 w-12 text-gray-400 mb-3" />
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">No Products Yet</h3>
                 <p className="text-gray-500 mb-4">Start adding products for the brand.</p>
-                <button
-                  onClick={() => setActiveView("add")}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add First Product
-                </button>
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={() => setActiveView("add")}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Add First Product
+                  </button>
+                  <button
+                    onClick={() => {
+                      setErrorMessage(null);
+                      setSuccessMessage(null);
+                      setNewAccessory(getEmptyAccessoryForm());
+                      setActiveView("addaccessory");
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Add First Accessory
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -1724,6 +1919,378 @@ export default function TeamMemberPortal({ onBack }: TeamMemberPortalProps) {
                 <button type="submit" disabled={productsLoading} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">{productsLoading ? "Submitting..." : "Submit Changes for Approval"}</button>
               </div>
               <p className="text-xs text-gray-400 text-center">Your edits will be submitted for admin approval before being applied.</p>
+            </form>
+          </div>
+        )}
+
+        {/* Add Accessory Form */}
+        {activeView === "addaccessory" && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Add New Accessory</h2>
+              <button
+                onClick={() => { setNewAccessory(getEmptyAccessoryForm()); setActiveView("list"); }}
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
+              >
+                <X size={16} className="mr-1" /> Cancel
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleAddAccessory(); }} className="space-y-6">
+              {/* ───── Basic Accessory Information ───── */}
+              <div className="border-b pb-4">
+                <h4 className="text-md font-medium text-gray-900 mb-3">Basic Accessory Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Accessory Name *</label>
+                    <input type="text" value={newAccessory.name} onChange={(e) => setNewAccessory({ ...newAccessory, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter accessory name" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Brand Name *</label>
+                    <input type="text" value={newAccessory.brandName} onChange={(e) => setNewAccessory({ ...newAccessory, brandName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter brand name" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <select value={newAccessory.category} onChange={(e) => setNewAccessory({ ...newAccessory, category: e.target.value, subCategory: "" })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                      <option value="">Select Category</option>
+                      <option value="accessories">Accessories</option>
+                      <option value="Bags">Bags</option>
+                      <option value="Jewellery">Jewellery</option>
+                      <option value="Watches">Watches</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sub-Category *</label>
+                    <select value={newAccessory.subCategory} onChange={(e) => setNewAccessory({ ...newAccessory, subCategory: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                      <option value="">Select Sub-Category</option>
+                      {newAccessory.category === "accessories" && <>
+                        <option value="Sunglasses">Sunglasses</option>
+                        <option value="Belts">Belts</option>
+                        <option value="Wallets">Wallets</option>
+                        <option value="Hats & Caps">Hats & Caps</option>
+                        <option value="Scarves">Scarves</option>
+                        <option value="Gloves">Gloves</option>
+                        <option value="Hair Accessories">Hair Accessories</option>
+                      </>}
+                      {newAccessory.category === "Bags" && <>
+                        <option value="Handbags">Handbags</option>
+                        <option value="Shoulder Bags">Shoulder Bags</option>
+                        <option value="Clutches">Clutches</option>
+                        <option value="Tote Bags">Tote Bags</option>
+                        <option value="Backpacks">Backpacks</option>
+                        <option value="Crossbody Bags">Crossbody Bags</option>
+                        <option value="Wallets & Pouches">Wallets & Pouches</option>
+                      </>}
+                      {newAccessory.category === "Jewellery" && <>
+                        <option value="Necklaces">Necklaces</option>
+                        <option value="Earrings">Earrings</option>
+                        <option value="Bracelets">Bracelets</option>
+                        <option value="Rings">Rings</option>
+                        <option value="Anklets">Anklets</option>
+                        <option value="Brooches">Brooches</option>
+                        <option value="Jewellery Sets">Jewellery Sets</option>
+                      </>}
+                      {newAccessory.category === "Watches" && <>
+                        <option value="Analog Watches">Analog Watches</option>
+                        <option value="Digital Watches">Digital Watches</option>
+                        <option value="Smart Watches">Smart Watches</option>
+                        <option value="Luxury Watches">Luxury Watches</option>
+                        <option value="Sports Watches">Sports Watches</option>
+                        <option value="Fashion Watches">Fashion Watches</option>
+                      </>}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product MRP (₹) *</label>
+                    <input type="number" value={newAccessory.mrp} onChange={(e) => setNewAccessory({ ...newAccessory, mrp: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter MRP" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Selling Price (₹) *</label>
+                    <input type="number" value={newAccessory.sellingPrice} onChange={(e) => setNewAccessory({ ...newAccessory, sellingPrice: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter Selling Price" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">GST Rate (%) *</label>
+                    <select value={newAccessory.gstPercentage} onChange={(e) => setNewAccessory({ ...newAccessory, gstPercentage: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                      <option value="">Select GST</option>
+                      <option value="0%">0%</option>
+                      <option value="5%">5%</option>
+                      <option value="12%">12%</option>
+                      <option value="18%">18%</option>
+                      <option value="28%">28%</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">HSN Code *</label>
+                    <input type="text" value={newAccessory.hsnCode} onChange={(e) => setNewAccessory({ ...newAccessory, hsnCode: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Auto-generated based on norms" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Country of Origin *</label>
+                    <input type="text" value={newAccessory.countryOfOrigin} onChange={(e) => setNewAccessory({ ...newAccessory, countryOfOrigin: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., India" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Material *</label>
+                    <input type="text" value={newAccessory.material} onChange={(e) => setNewAccessory({ ...newAccessory, material: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Leather, Metal, Fabric" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Color *</label>
+                    <input type="text" value={newAccessory.color} onChange={(e) => setNewAccessory({ ...newAccessory, color: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter color" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Size / Dimensions *</label>
+                    <input type="text" value={newAccessory.size} onChange={(e) => setNewAccessory({ ...newAccessory, size: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Free Size, One Size" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Weight (grams) *</label>
+                    <input type="text" value={newAccessory.weight} onChange={(e) => setNewAccessory({ ...newAccessory, weight: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 150g" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock Quantity *</label>
+                    <input type="number" value={newAccessory.stockQuantity} onChange={(e) => setNewAccessory({ ...newAccessory, stockQuantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter total stock" required />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Description *</label>
+                    <textarea value={newAccessory.fullDescription} onChange={(e) => setNewAccessory({ ...newAccessory, fullDescription: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={4} placeholder="Detailed accessory description" required />
+                  </div>
+                </div>
+              </div>
+
+              {/* ───── Category-Specific Fields ───── */}
+              {newAccessory.category === "Bags" && (
+                <div className="border-b pb-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">Bag Specifications</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Bag Type</label>
+                      <select value={newAccessory.bagType || ""} onChange={(e) => setNewAccessory({ ...newAccessory, bagType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Type</option>
+                        <option value="Handbag">Handbag</option>
+                        <option value="Shoulder Bag">Shoulder Bag</option>
+                        <option value="Tote">Tote</option>
+                        <option value="Clutch">Clutch</option>
+                        <option value="Backpack">Backpack</option>
+                        <option value="Crossbody">Crossbody</option>
+                        <option value="Satchel">Satchel</option>
+                        <option value="Hobo">Hobo</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Compartments</label>
+                      <input type="text" value={newAccessory.compartments || ""} onChange={(e) => setNewAccessory({ ...newAccessory, compartments: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 3 compartments, 1 zip pocket" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Closure Type</label>
+                      <select value={newAccessory.finish || ""} onChange={(e) => setNewAccessory({ ...newAccessory, finish: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Closure</option>
+                        <option value="Zipper">Zipper</option>
+                        <option value="Magnetic">Magnetic</option>
+                        <option value="Buckle">Buckle</option>
+                        <option value="Drawstring">Drawstring</option>
+                        <option value="Flap">Flap</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Strap Type</label>
+                      <input type="text" value={newAccessory.secondaryMaterial || ""} onChange={(e) => setNewAccessory({ ...newAccessory, secondaryMaterial: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Adjustable, Detachable" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {newAccessory.category === "Jewellery" && (
+                <div className="border-b pb-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">Jewellery Specifications</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Metal Type</label>
+                      <select value={newAccessory.metalType || ""} onChange={(e) => setNewAccessory({ ...newAccessory, metalType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Metal</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Silver">Silver</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Rose Gold">Rose Gold</option>
+                        <option value="White Gold">White Gold</option>
+                        <option value="Brass">Brass</option>
+                        <option value="Stainless Steel">Stainless Steel</option>
+                        <option value="Alloy">Alloy</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Gemstone Type</label>
+                      <select value={newAccessory.gemstoneType || ""} onChange={(e) => setNewAccessory({ ...newAccessory, gemstoneType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Gemstone</option>
+                        <option value="Diamond">Diamond</option>
+                        <option value="Ruby">Ruby</option>
+                        <option value="Sapphire">Sapphire</option>
+                        <option value="Emerald">Emerald</option>
+                        <option value="Pearl">Pearl</option>
+                        <option value="Cubic Zirconia">Cubic Zirconia</option>
+                        <option value="No Gemstone">No Gemstone</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Plating</label>
+                      <select value={newAccessory.plating || ""} onChange={(e) => setNewAccessory({ ...newAccessory, plating: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Plating</option>
+                        <option value="Gold Plated">Gold Plated</option>
+                        <option value="Rhodium Plated">Rhodium Plated</option>
+                        <option value="Silver Plated">Silver Plated</option>
+                        <option value="Rose Gold Plated">Rose Gold Plated</option>
+                        <option value="No Plating">No Plating</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Occasion</label>
+                      <input type="text" value={newAccessory.occasion || ""} onChange={(e) => setNewAccessory({ ...newAccessory, occasion: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Wedding, Daily Wear, Party" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {newAccessory.category === "Watches" && (
+                <div className="border-b pb-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">Watch Specifications</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Watch Type</label>
+                      <select value={newAccessory.watchType || ""} onChange={(e) => setNewAccessory({ ...newAccessory, watchType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Type</option>
+                        <option value="Analog">Analog</option>
+                        <option value="Digital">Digital</option>
+                        <option value="Smart Watch">Smart Watch</option>
+                        <option value="Hybrid">Hybrid</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Band Material</label>
+                      <select value={newAccessory.bandMaterial || ""} onChange={(e) => setNewAccessory({ ...newAccessory, bandMaterial: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Material</option>
+                        <option value="Leather">Leather</option>
+                        <option value="Metal">Metal</option>
+                        <option value="Silicone">Silicone</option>
+                        <option value="Fabric">Fabric</option>
+                        <option value="Rubber">Rubber</option>
+                        <option value="Ceramic">Ceramic</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Water Resistance</label>
+                      <input type="text" value={newAccessory.waterResistance || ""} onChange={(e) => setNewAccessory({ ...newAccessory, waterResistance: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 30m, 50m, 100m" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Dial Diameter</label>
+                      <input type="text" value={newAccessory.dimensions || ""} onChange={(e) => setNewAccessory({ ...newAccessory, dimensions: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 40mm" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ───── Descriptions ───── */}
+              <div className="border-b pb-4">
+                <h4 className="text-md font-medium text-gray-900 mb-3">Descriptions</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Short Description</label>
+                    <textarea value={newAccessory.shortDescription} onChange={(e) => setNewAccessory({ ...newAccessory, shortDescription: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} placeholder="Brief accessory description" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Key Features / Highlights</label>
+                    <textarea value={newAccessory.keyFeatures} onChange={(e) => setNewAccessory({ ...newAccessory, keyFeatures: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="List key features" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Special Features</label>
+                    <textarea value={newAccessory.specialFeatures || ""} onChange={(e) => setNewAccessory({ ...newAccessory, specialFeatures: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} placeholder="Any special features" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Care Instructions</label>
+                    <textarea value={newAccessory.careInstructions || ""} onChange={(e) => setNewAccessory({ ...newAccessory, careInstructions: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} placeholder="Care and maintenance instructions" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ───── Media ───── */}
+              <div className="border-b pb-4">
+                <h4 className="text-md font-medium text-gray-900 mb-3">Media</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Images *</label>
+                    <p className="text-xs text-gray-500 mb-2">Min 3–5 images (Front, back, sides, close-up details)</p>
+                    <div className="flex items-center space-x-4 mb-2">
+                      <input type="file" id="tm-accessory-images" accept="image/*" multiple onChange={handleAccessoryImageUpload} className="hidden" />
+                      <label htmlFor="tm-accessory-images" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer flex items-center"><Upload size={16} className="mr-2" />Upload Images</label>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {newAccessory.images.map((image: string, idx: number) => (
+                        <div key={idx} className="relative">
+                          <img src={image} alt={`Accessory ${idx + 1}`} className="w-full h-24 object-cover rounded border" />
+                          <button type="button" onClick={() => removeAccessoryImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"><X size={14} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Video Link</label>
+                    <input type="url" value={newAccessory.videoLink} onChange={(e) => setNewAccessory({ ...newAccessory, videoLink: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/video" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Instagram Video Link</label>
+                    <input type="url" value={newAccessory.instagramLink} onChange={(e) => setNewAccessory({ ...newAccessory, instagramLink: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://instagram.com/..." />
+                  </div>
+                </div>
+              </div>
+
+              {/* ───── Logistics ───── */}
+              <div className="border-b pb-4">
+                <h4 className="text-md font-medium text-gray-900 mb-3">Logistics</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Availability</label>
+                    <select value={newAccessory.deliveryAvailability} onChange={(e) => setNewAccessory({ ...newAccessory, deliveryAvailability: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Option</option>
+                      <option value="Pan India">Pan India</option>
+                      <option value="Metro Cities">Metro Cities</option>
+                      <option value="Select Cities">Select Cities</option>
+                      <option value="International">International</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">COD Option</label>
+                    <select value={newAccessory.codOption} onChange={(e) => setNewAccessory({ ...newAccessory, codOption: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Option</option>
+                      <option value="Available">Available</option>
+                      <option value="Not Available">Not Available</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Seller Address</label>
+                    <textarea value={newAccessory.sellerAddress} onChange={(e) => setNewAccessory({ ...newAccessory, sellerAddress: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} placeholder="Enter seller address" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Return Policy</label>
+                    <textarea value={newAccessory.returnPolicy} onChange={(e) => setNewAccessory({ ...newAccessory, returnPolicy: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="Enter return policy details" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ───── Compliance ───── */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-3">Compliance</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Manufacturer Details *</label>
+                    <textarea value={newAccessory.manufacturerDetails} onChange={(e) => setNewAccessory({ ...newAccessory, manufacturerDetails: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} placeholder="Enter manufacturer or importer details" required />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Warranty</label>
+                    <input type="text" value={newAccessory.warranty || ""} onChange={(e) => setNewAccessory({ ...newAccessory, warranty: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 6 months, 1 year" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button type="button" onClick={() => { setNewAccessory(getEmptyAccessoryForm()); setActiveView("list"); }} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                <button type="submit" disabled={productsLoading} className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">{productsLoading ? "Submitting..." : "Submit for Approval"}</button>
+              </div>
+              <p className="text-xs text-gray-400 text-center">This accessory will be submitted for admin approval before it appears on the platform.</p>
             </form>
           </div>
         )}
