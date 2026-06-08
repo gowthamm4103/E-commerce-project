@@ -576,4 +576,24 @@ export const adminAPI = {
     getStats: () =>
       apiFetch<{ success: boolean; data: any }>('/admin/change-requests/stats'),
   },
+
+  // Orders
+  orders: {
+    getAll: (params?: { status?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.status) q.set('status', params.status);
+      if (params?.search) q.set('search', params.search);
+      if (params?.dateFrom) q.set('dateFrom', params.dateFrom);
+      if (params?.dateTo) q.set('dateTo', params.dateTo);
+      return apiFetch<{ success: boolean; data: any[] }>(`/admin/orders?${q.toString()}`);
+    },
+    getById: (orderId: string) =>
+      apiFetch<{ success: boolean; data: any }>(`/admin/orders/${orderId}`),
+    updateStatus: (orderId: string, status: string) =>
+      apiFetch<{ success: boolean; data: any }>(`/admin/orders/${orderId}/status`, {
+        method: 'PUT', body: JSON.stringify({ status }),
+      }),
+    getStats: () =>
+      apiFetch<{ success: boolean; data: any }>('/admin/orders/stats'),
+  },
 };

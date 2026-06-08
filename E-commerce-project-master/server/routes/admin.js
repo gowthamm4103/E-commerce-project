@@ -32,4 +32,10 @@ router.get('/change-requests/:id', admin.getChangeRequestById);
 router.put('/change-requests/:id/approve', admin.approveChangeRequest);
 router.put('/change-requests/:id/reject', admin.rejectChangeRequest);
 
+// ─── Orders ─────────────────────────────────────────────────────────
+router.get('/orders/stats', admin.getOrderStats);
+router.get('/orders', admin.getAllOrders);
+router.get('/orders/:orderId', admin.getOrderById);
+router.put('/orders/:orderId/status', admin.updateOrderStatus);
+
 module.exports = router;

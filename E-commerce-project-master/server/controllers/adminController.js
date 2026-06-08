@@ -583,3 +583,150 @@ exports.getChangeRequestStats = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+//  ORDER MANAGEMENT (Admin – across all orders)
+// ═══════════════════════════════════════════════════════════════════
+
+// GET /api/admin/orders
+exports.getAllOrders = async (req, res) => {
+  try {
+    const { status, search, dateFrom, dateTo } = req.query;
+    const filter = {};
+
+    if (status && status !== 'all') {
+      filter.deliveryStatus = status;
+    }
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$or = [
+        { orderId: regex },
+        { 'customerInfo.name': regex },
+        { 'customerInfo.email': regex },
+        { 'customerInfo.phone': regex },
+      ];
+    }
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
+
+    // Enrich with customer and brand names
+    const userIds = [...new Set(orders.map((o) => o.userId))];
+    const users = await User.find({ userId: { $in: userIds } })
+      .select('userId name email')
+      .lean();
+    const userMap = {};
+    users.forEach((u) => (userMap[u.userId] = u));
+
+    const enriched = orders.map((order) => {
+      const user = userMap[order.userId] || {};
+      // Get brand name from first item's brandId
+      const brandId = order.items?.[0]?.brandId || order.brandId;
+      return {
+        _id: order._id,
+        orderId: order.orderId,
+        customerId: order.userId,
+        customerName: user.name || order.customerInfo?.name || 'N/A',
+        customerEmail: user.email || order.customerInfo?.email || 'N/A',
+        customerPhone: order.customerInfo?.phone || 'N/A',
+        brandName: brandId || 'N/A',
+        brandId: brandId,
+        items: order.items.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          productCode: item.productCode || item.productId,
+          category: item.category || 'N/A',
+          subCategory: item.subCategory || 'N/A',
+          skuCode: item.skuCode || 'N/A',
+          sellingPrice: item.sellingPrice || 0,
+          mrpPrice: item.mrpPrice || item.sellingPrice || 0,
+          quantity: item.quantity || 1,
+          size: item.size,
+          colour: item.colour,
+        })),
+        sellingPriceTotal: order.sellingPriceTotal || order.totalAmount || 0,
+        mrpTotal: order.mrpTotal || order.totalAmount || 0,
+        deliveryCharge: order.deliveryCharge || 0,
+        grandTotal: order.grandTotal || order.totalAmount || 0,
+        deliveryAddress: order.deliveryAddress || { name: '', phone: '', address: '', city: '', state: '', pincode: '' },
+        paymentMethod: order.paymentMethod || 'N/A',
+        paymentStatus: order.paymentStatus || 'Pending',
+        orderDate: order.orderDate || order.createdAt,
+        expectedDeliveryDate: order.expectedDeliveryDate,
+        deliveryStatus: order.deliveryStatus || 'Order Placed',
+        createdAt: order.createdAt,
+      };
+    });
+
+    res.json({ success: true, data: enriched });
+  } catch (err) {
+    console.error('Admin getAllOrders error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// GET /api/admin/orders/:orderId
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findOne({ orderId: req.params.orderId }).lean();
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found.' });
+    }
+    res.json({ success: true, data: order });
+  } catch (err) {
+    console.error('Admin getOrderById error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// PUT /api/admin/orders/:orderId/status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ success: false, error: 'Status is required.' });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { orderId: req.params.orderId },
+      { deliveryStatus: status, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found.' });
+    }
+
+    res.json({ success: true, data: order });
+  } catch (err) {
+    console.error('Admin updateOrderStatus error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// GET /api/admin/orders/stats
+exports.getOrderStats = async (req, res) => {
+  try {
+    const totalOrders = await Order.countDocuments();
+    const pending = await Order.countDocuments({ deliveryStatus: 'Order Placed' });
+    const outForDelivery = await Order.countDocuments({ deliveryStatus: 'Out for Delivery' });
+    const delivered = await Order.countDocuments({ deliveryStatus: 'Product Delivered' });
+
+    const revenueData = await Order.aggregate([
+      { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+    ]);
+    const totalRevenue = revenueData[0]?.total || 0;
+
+    res.json({
+      success: true,
+      data: { totalOrders, totalRevenue, pending, outForDelivery, delivered },
+    });
+  } catch (err) {
+    console.error('Admin getOrderStats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

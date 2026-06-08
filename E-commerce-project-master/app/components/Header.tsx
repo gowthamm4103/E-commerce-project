@@ -3588,17 +3588,6 @@ const Header = ({
               {/* Navigation Links */}
               <div className="hidden md:flex items-center space-x-6 text-sm font-bold">
                 <a
-                  href="/shop"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setCurrentPage("all");
-                  }}
-                  className="text-gray-800 hover:text-black uppercase tracking-wide hover:underline transition-colors"
-                >
-                  All
-                </a>
-
-                <a
                   href="/men"
                   onClick={(e) => {
                     e.preventDefault();
@@ -3642,8 +3631,8 @@ const Header = ({
                   Home
                 </a>
 
-                {/* Company dropdown - visible only on Home page (landing) */}
-                {currentPage === 'landing' && (
+              {/* Company dropdown - visible only on Home page (landing) and only before login */}
+                {currentPage === 'landing' && !user && (
                   <div className="relative" ref={companyDropdownRef}>
                     <button 
                       onClick={() => setIsCompanyDropdownOpen?.(!isCompanyDropdownOpen)}
@@ -3673,7 +3662,8 @@ const Header = ({
 
             {/* Right Section - Search, Icons, and Menu Button */}
             <div className="flex items-center gap-4">
-              {/* Notification Icon */}
+              {/* Notification Icon - only visible when user is logged in */}
+              {user && (
               <div className="flex flex-col items-center justify-center gap-0.5 cursor-pointer">
                 <div className="relative">
                   <svg
@@ -3694,6 +3684,7 @@ const Header = ({
                   Notifications
                 </span>
               </div>
+              )}
 
               {/* Search Icon */}
               <form
@@ -3796,28 +3787,6 @@ const Header = ({
                 </span>
               </div>
 
-              {/* User Icon */}
-              {user ? (
-                <div
-                  className="flex flex-col items-center justify-center gap-0.5 cursor-pointer"
-                  onClick={onProfileClick}
-                >
-                  <div className="relative">
-                    <User size={20} className="text-gray-700" />
-                    <span className="absolute -top-1 -right-1 bg-green-500 w-2 h-2 rounded-full"></span>
-                  </div>
-                  <span className="text-[13px] font-semibold text-slate-900">
-                    Profile
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-0.5 cursor-pointer">
-                  <User size={20} className="text-gray-700" />
-                  <span className="text-[13px] font-semibold text-slate-900">
-                    Account
-                  </span>
-                </div>
-              )}
 
               {/* Login/Sign Up pre-login | Dashboard icon + Menu button post-login */}
               {user ? (

@@ -6,7 +6,7 @@ import {
   Mail, Calendar, MapPin, ArrowUpDown, Eye, X, Package, Building2,
   RefreshCw, ChevronLeft, ChevronRight, LogOut, LayoutDashboard,
   Tag, FileText, ClipboardCheck, Check, XCircle, Clock,
-  Trash2, Menu as MenuIcon,
+  Trash2, Menu as MenuIcon, Wallet,
 } from 'lucide-react';
 import { adminAPI } from '../lib/api';
 
@@ -24,6 +24,14 @@ interface UserData {
   bankDetails?: { accountNumber?: string; accountHolder?: string; ifsc?: string; bankName?: string };
   brandName?: string; businessRegNo?: string; gstNo?: string; dateOfBirth?: string;
   createdAt?: string; orderCount?: number; totalSpent?: number;
+  // MLM/Tree related fields
+  directIncome?: number; indirectIncome?: number; totalSales?: number;
+  left?: UserData | null; right?: UserData | null;
+  leftCount?: number; rightCount?: number; totalCount?: number;
+  leftPurchaseValue?: number; rightPurchaseValue?: number; totalPurchaseValue?: number;
+  leftIncome?: number; rightIncome?: number;
+  directReferrals?: string[];
+  joinDate?: string;
   [key: string]: unknown;
 }
 
@@ -50,7 +58,25 @@ interface InvoiceData {
   items?: { productName: string; price: number; quantity: number; amount: number }[];
 }
 
-type AdminTab = 'overview' | 'users' | 'changeRequests' | 'coupons' | 'invoices';
+interface OrderData {
+  _id: string; orderId: string; customerId: string; customerName: string; customerEmail: string;
+  customerPhone: string; brandName: string; brandId: string;
+  items: {
+    productId: string; productName: string; productCode: string;
+    category: string; subCategory: string; skuCode: string;
+    sellingPrice: number; mrpPrice: number; quantity: number;
+    size?: string; colour?: string;
+  }[];
+  sellingPriceTotal: number; mrpTotal: number;
+  deliveryCharge: number; grandTotal: number;
+  deliveryAddress: { name: string; phone: string; address: string; city: string; state: string; pincode: string };
+  paymentMethod: string; paymentStatus: string;
+  orderDate: string; expectedDeliveryDate?: string;
+  deliveryStatus: 'Order Placed' | 'In Store Pick up' | 'Pick up from ware house' | 'Out for Delivery' | 'Product Delivered';
+  createdAt: string;
+}
+
+type AdminTab = 'overview' | 'users' | 'orders' | 'changeRequests' | 'coupons' | 'invoices';
 
 /* ══════════════════════════════════════════════════════════════════
    SUB-COMPONENTS
@@ -71,6 +97,51 @@ const DetailField: React.FC<{ label: string; value?: string | number | null; ico
   </div>
 );
 
+// Sub-component for statistics boxes
+const StatBox: React.FC<{ label: string; value: string | number; color?: string; highlight?: boolean }> = ({ label, value, color = 'blue', highlight = false }) => (
+  <div className={`p-3 rounded-lg ${highlight ? 'bg-gray-800 text-white' : `bg-${color}-50 text-${color}-800 border border-${color}-100`}`}>
+    <div className="text-xs opacity-80 mb-1">{label}</div>
+    <div className="text-lg font-bold">{value}</div>
+  </div>
+);
+
+// Sub-component for currency statistics boxes
+const CurrencyStatBox: React.FC<{ label: string; value: number; highlight?: boolean }> = ({ label, value, highlight = false }) => (
+  <div className={`p-3 rounded-lg ${highlight ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-800 border border-gray-200'}`}>
+    <div className="text-xs opacity-80 mb-1 truncate" title={label}>{label}</div>
+    <div className="text-sm font-bold">₹{value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+  </div>
+);
+
+// Helper to calculate subtree stats recursively
+const getSubtreeStats = (node: UserData | null | undefined, excludeDirect = false) => {
+  if (!node) {
+    return { count: 0, totalSales: 0, totalIncome: 0 };
+  }
+
+  let stats = {
+    count: excludeDirect ? 0 : 1,
+    totalSales: node.totalSales || 0,
+    totalIncome: (node.directIncome || 0) + (node.indirectIncome || 0)
+  };
+
+  if (node.left) {
+    const leftStats = getSubtreeStats(node.left, false);
+    stats.count += leftStats.count;
+    stats.totalSales += leftStats.totalSales;
+    stats.totalIncome += leftStats.totalIncome;
+  }
+
+  if (node.right) {
+    const rightStats = getSubtreeStats(node.right, false);
+    stats.count += rightStats.count;
+    stats.totalSales += rightStats.totalSales;
+    stats.totalIncome += rightStats.totalIncome;
+  }
+
+  return stats;
+};
+
 /* ══════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
@@ -84,7 +155,7 @@ export default function AdminDashboard({ user, onLogout }: Props) {
   const [userFilter, setUserFilter] = useState('all');
   const [userLoading, setUserLoading] = useState(false);
   const [userPagination, setUserPagination] = useState({ total: 0, page: 1, limit: 50, pages: 0 });
-  const [userStats, setUserStats] = useState({ totalUsers: 0, totalCustomers: 0, totalBrandOwners: 0, totalFounders: 0, kycVerified: 0 });
+  const [userStats, setUserStats] = useState({ totalUsers: 0, totalCustomers: 0, totalBrandOwners: 0, totalFounders: 0, kycVerified: 0, kycNotVerified: 0, bankVerified: 0, bankNotVerified: 0 });
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [userDetail, setUserDetail] = useState<UserData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -113,6 +184,13 @@ export default function AdminDashboard({ user, onLogout }: Props) {
   const [invoiceFilter, setInvoiceFilter] = useState('all');
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
+
+  // ─── Orders state ───────────────────────────────────
+  const [orders, setOrders] = useState<OrderData[]>([]);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderFilter, setOrderFilter] = useState('all');
+  const [orderStats, setOrderStats] = useState({ totalOrders: 0, totalRevenue: 0, pending: 0, delivered: 0, outForDelivery: 0 });
 
   // ─── Logout confirmation ────────────────────────────
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -184,14 +262,34 @@ export default function AdminDashboard({ user, onLogout }: Props) {
     finally { setInvoiceLoading(false); }
   }, [invoiceFilter, invoiceSearch]);
 
+  const fetchOrders = useCallback(async () => {
+    setOrderLoading(true);
+    try {
+      const res = await adminAPI.orders.getAll({
+        status: orderFilter !== 'all' ? orderFilter : undefined,
+        search: orderSearch || undefined,
+      });
+      if (res.success) setOrders(res.data);
+    } catch (err) { console.error('Failed to fetch orders:', err); }
+    finally { setOrderLoading(false); }
+  }, [orderFilter, orderSearch]);
+
+  const fetchOrderStats = useCallback(async () => {
+    try {
+      const res = await adminAPI.orders.getStats();
+      if (res.success) setOrderStats(res.data);
+    } catch (err) { console.error('Failed to fetch order stats:', err); }
+  }, []);
+
   // Fetch data based on active tab
   useEffect(() => {
     if (activeTab === 'overview') { fetchUserStats(); fetchCRStats(); }
     if (activeTab === 'users') { fetchUsers(); fetchUserStats(); }
+    if (activeTab === 'orders') { fetchOrders(); fetchOrderStats(); }
     if (activeTab === 'changeRequests') { fetchChangeRequests(); fetchCRStats(); }
     if (activeTab === 'coupons') { fetchCoupons(); }
     if (activeTab === 'invoices') { fetchInvoices(); }
-  }, [activeTab, fetchUsers, fetchUserStats, fetchChangeRequests, fetchCRStats, fetchCoupons, fetchInvoices]);
+  }, [activeTab, fetchUsers, fetchUserStats, fetchOrders, fetchOrderStats, fetchChangeRequests, fetchCRStats, fetchCoupons, fetchInvoices]);
 
   /* ════════════════════════════════════════════════════════════════
      ACTIONS
@@ -274,12 +372,15 @@ export default function AdminDashboard({ user, onLogout }: Props) {
     return 0;
   });
 
+  const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
+
   /* ════════════════════════════════════════════════════════════════
      SIDEBAR TABS
      ════════════════════════════════════════════════════════════════ */
   const tabs: { id: AdminTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
     { id: 'users', label: 'Users', icon: <Users size={20} /> },
+    { id: 'orders', label: 'Orders', icon: <Package size={20} /> },
     { id: 'changeRequests', label: 'Requests', icon: <ClipboardCheck size={20} />, badge: crStats.pending },
     { id: 'coupons', label: 'Coupons', icon: <Tag size={20} /> },
     { id: 'invoices', label: 'Invoices', icon: <FileText size={20} /> },
@@ -347,13 +448,32 @@ export default function AdminDashboard({ user, onLogout }: Props) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard label="Total" value={userStats.totalUsers} icon={<Users size={20} />} color="blue" />
-        <StatCard label="Customers" value={userStats.totalCustomers} icon={<Users size={20} />} color="indigo" />
-        <StatCard label="Brand Owners" value={userStats.totalBrandOwners} icon={<Building2 size={20} />} color="purple" />
-        <StatCard label="Founders" value={userStats.totalFounders} icon={<Shield size={20} />} color="amber" />
-        <StatCard label="KYC Verified" value={userStats.kycVerified} icon={<Shield size={20} />} color="green" />
-      </div>
+      {/* Calculate KYC and Bank stats from users array if not provided by API */}
+      {(() => {
+        const kycVerifiedCount = userStats.kycVerified || users.filter(u => u.kycData?.verified).length;
+        const kycNotVerifiedCount = userStats.kycNotVerified || (users.length - kycVerifiedCount);
+        const bankVerifiedCount = userStats.bankVerified || users.filter(u => u.bankDetails).length;
+        const bankNotVerifiedCount = userStats.bankNotVerified || (users.length - bankVerifiedCount);
+
+        return (
+          <div className="space-y-4">
+            {/* First Level - User Type Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard label="Total Users" value={userStats.totalUsers} icon={<Users size={20} />} color="blue" />
+              <StatCard label="Customers" value={userStats.totalCustomers} icon={<Users size={20} />} color="indigo" />
+              <StatCard label="Brand Owners" value={userStats.totalBrandOwners} icon={<Building2 size={20} />} color="purple" />
+              <StatCard label="Founders" value={userStats.totalFounders} icon={<Shield size={20} />} color="amber" />
+            </div>
+            {/* Second Level - KYC & Bank Status Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard label="KYC Verified" value={kycVerifiedCount} icon={<Check size={20} />} color="green" />
+              <StatCard label="KYC Not Verified" value={kycNotVerifiedCount} icon={<XCircle size={20} />} color="red" />
+              <StatCard label="Bank Verified" value={bankVerifiedCount} icon={<CreditCard size={20} />} color="green" />
+              <StatCard label="Bank Not Verified" value={bankNotVerifiedCount} icon={<CreditCard size={20} />} color="red" />
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between items-center">
         <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg w-full lg:w-96">
@@ -582,6 +702,89 @@ export default function AdminDashboard({ user, onLogout }: Props) {
     </div>
   );
 
+  // ─── ORDERS ──────────────────────────────────────────
+  const renderOrders = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">Order Management</h2>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatCard label="Total Orders" value={orderStats.totalOrders} icon={<Package size={20} />} color="blue" />
+        <StatCard label="Total Revenue" value={`₹${(orderStats.totalRevenue || 0).toLocaleString('en-IN')}`} icon={<Wallet size={20} />} color="green" />
+        <StatCard label="Pending" value={orderStats.pending} icon={<Clock size={20} />} color="amber" />
+        <StatCard label="Out for Delivery" value={orderStats.outForDelivery} icon={<MapPin size={20} />} color="indigo" />
+        <StatCard label="Delivered" value={orderStats.delivered} icon={<Check size={20} />} color="green" />
+      </div>
+
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col lg:flex-row gap-4 justify-between items-center">
+        <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg w-full lg:w-80">
+          <Search size={18} className="text-gray-400" />
+          <input type="text" placeholder="Search orders..." className="bg-transparent border-none outline-none text-sm w-full"
+            value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchOrders()} />
+        </div>
+        <div className="flex items-center gap-3">
+          <select className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-2 outline-none" value={orderFilter} onChange={(e) => setOrderFilter(e.target.value)}>
+            <option value="all">All Statuses</option>
+            <option value="Order Placed">Order Placed</option>
+            <option value="In Store Pick up">In Store Pick up</option>
+            <option value="Pick up from ware house">Pick up from warehouse</option>
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Product Delivered">Delivered</option>
+          </select>
+          <button onClick={fetchOrders} className="p-2 border rounded-lg hover:bg-gray-50"><RefreshCw size={18} className={orderLoading ? 'animate-spin' : ''} /></button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-600 border-b">
+              <tr>
+                <th className="p-4 font-semibold">Order ID</th>
+                <th className="p-4 font-semibold">Customer</th>
+                <th className="p-4 font-semibold">Brand</th>
+                <th className="p-4 font-semibold">Items</th>
+                <th className="p-4 font-semibold text-right">Total</th>
+                <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold">Date</th>
+                <th className="p-4 font-semibold text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {orderLoading ? (
+                <tr><td colSpan={8} className="p-8 text-center text-gray-500"><RefreshCw size={20} className="animate-spin inline mr-2" />Loading...</td></tr>
+              ) : orders.length === 0 ? (
+                <tr><td colSpan={8} className="p-8 text-center text-gray-500">No orders found.</td></tr>
+              ) : orders.map((order) => (
+                <tr key={order._id} className="hover:bg-gray-50 transition">
+                  <td className="p-4 font-mono font-medium text-gray-900">{order.orderId}</td>
+                  <td className="p-4">
+                    <div className="font-medium text-gray-900">{order.customerName}</div>
+                    <div className="text-xs text-gray-500">{order.customerEmail}</div>
+                  </td>
+                  <td className="p-4 text-gray-600">{order.brandName}</td>
+                  <td className="p-4 text-gray-600">{order.items.length} item(s)</td>
+                  <td className="p-4 text-right font-semibold">₹{(order.grandTotal || 0).toLocaleString('en-IN')}</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      order.deliveryStatus === 'Product Delivered' ? 'bg-green-100 text-green-800' :
+                      order.deliveryStatus === 'Out for Delivery' ? 'bg-indigo-100 text-indigo-800' :
+                      order.deliveryStatus === 'Order Placed' ? 'bg-amber-100 text-amber-800' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>{order.deliveryStatus}</span>
+                  </td>
+                  <td className="p-4 text-xs text-gray-500">{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="p-4 text-center">
+                    <button onClick={() => setSelectedOrder(order)} className="p-2 bg-white border border-gray-200 rounded hover:bg-blue-50 hover:text-blue-600 transition text-gray-600"><Eye size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   // ─── INVOICES ────────────────────────────────────────
   const renderInvoices = () => (
     <div className="space-y-6">
@@ -698,6 +901,7 @@ export default function AdminDashboard({ user, onLogout }: Props) {
         <div className="max-w-[1400px] mx-auto">
           {activeTab === 'overview' && renderOverview()}
           {activeTab === 'users' && renderUsers()}
+          {activeTab === 'orders' && renderOrders()}
           {activeTab === 'changeRequests' && renderChangeRequests()}
           {activeTab === 'coupons' && renderCoupons()}
           {activeTab === 'invoices' && renderInvoices()}
@@ -727,31 +931,161 @@ export default function AdminDashboard({ user, onLogout }: Props) {
                 <div className="flex justify-center py-12"><RefreshCw size={32} className="animate-spin text-gray-400" /></div>
               ) : (
                 <>
-                  <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <DetailField label="Email" value={selectedUser.email} icon={<Mail size={14} className="text-gray-400" />} />
-                    <DetailField label="Phone" value={selectedUser.mobile} icon={<Phone size={14} className="text-gray-400" />} />
-                    <DetailField label="Joined" value={selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'} icon={<Calendar size={14} className="text-gray-400" />} />
-                    <DetailField label="Address" value={selectedUser.kycData?.address} icon={<MapPin size={14} className="text-gray-400" />} />
+                  {/* Section 1: Personal Information */}
+                  <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="col-span-full mb-2 flex items-center gap-2 pb-2 border-b">
+                      <Users className="text-blue-600" size={18} />
+                      <h3 className="text-lg font-semibold text-gray-800">Personal Information</h3>
+                    </div>
+
+                    <DetailField label="Full Name" value={selectedUser.name} />
+                    <DetailField label="Email ID" value={selectedUser.email} icon={<Mail size={14} className="text-gray-400"/>} />
+                    <DetailField label="Phone Number" value={selectedUser.mobile} icon={<Phone size={14} className="text-gray-400"/>} />
+                    <DetailField label="Date of Birth" value={selectedUser.dateOfBirth || 'N/A'} icon={<Calendar size={14} className="text-gray-400"/>} />
+                    <DetailField label="Date of Join" value={selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'} icon={<Calendar size={14} className="text-gray-400"/>} />
+                    <DetailField label="Address" value={selectedUser.kycData?.address || 'N/A'} icon={<MapPin size={14} className="text-gray-400"/>} />
+                    
                     {selectedUser.userType === 'brand_owner' && (
                       <>
-                        <DetailField label="Brand" value={selectedUser.brandName} icon={<Building2 size={14} className="text-gray-400" />} />
-                        <DetailField label="GST" value={selectedUser.gstNo} />
+                        <DetailField label="Brand Name" value={selectedUser.brandName || 'N/A'} icon={<Building2 size={14} className="text-gray-400"/>} />
+                        <DetailField label="Business Address" value={selectedUser.kycData?.businessAddress || 'N/A'} icon={<MapPin size={14} className="text-gray-400"/>} />
+                        <DetailField label="Business Reg No" value={selectedUser.businessRegNo || 'N/A'} />
+                        <DetailField label="GST Number" value={selectedUser.gstNo || 'N/A'} />
                       </>
                     )}
                   </section>
-                  <section className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <DetailField label="KYC Status">
-                      {selectedUser.kycData?.verified ? <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Verified</span> : <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">Pending</span>}
+
+                  {/* Section 2: KYC & Bank Details */}
+                  <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                    <div className="col-span-full md:col-span-2 lg:col-span-4 mb-2 flex items-center gap-2">
+                      <Shield className="text-green-600" size={18} />
+                      <h3 className="text-lg font-semibold text-gray-800">Verification & Banking</h3>
+                    </div>
+
+                    <DetailField label="KYC Status" value={selectedUser.kycData?.verified ? 'Verified' : 'Pending'}>
+                      {selectedUser.kycData?.verified ? 
+                        <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Verified</span> : 
+                        <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">Pending</span>
+                      }
                     </DetailField>
-                    <DetailField label="PAN" value={selectedUser.kycData?.pan} />
-                    <DetailField label="Aadhaar" value={selectedUser.kycData?.aadhaar} />
-                    <DetailField label="Bank">{selectedUser.bankDetails ? <span className="text-green-600 text-xs">{selectedUser.bankDetails.bankName} - {selectedUser.bankDetails.accountNumber}</span> : <span className="text-red-500 text-xs">Not added</span>}</DetailField>
+                    <DetailField label="PAN Number" value={selectedUser.kycData?.pan || 'N/A'} />
+                    <DetailField label="Aadhar Number" value={selectedUser.kycData?.aadhaar || 'N/A'} />
+                    <DetailField label="Bank Status" value={selectedUser.bankDetails ? 'Verified' : 'Not Added'}>
+                      {selectedUser.bankDetails ? 
+                        <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Verified</span> : 
+                        <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">Not Added</span>
+                      }
+                    </DetailField>
+                    
+                    {selectedUser.bankDetails ? (
+                      <>
+                        <DetailField label="Account Number" value={selectedUser.bankDetails.accountNumber} icon={<CreditCard size={14} className="text-gray-400"/>} />
+                        <DetailField label="Account Holder" value={selectedUser.bankDetails.accountHolder} />
+                        <DetailField label="IFSC Code" value={selectedUser.bankDetails.ifsc} />
+                        <DetailField label="Bank Name" value={selectedUser.bankDetails.bankName} />
+                      </>
+                    ) : (
+                      <div className="col-span-4 text-center text-sm text-gray-400 py-2">
+                        No banking details available
+                      </div>
+                    )}
                   </section>
+
+                  {/* Section 3: Direct Children Statistics */}
+                  <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 border border-blue-100 p-4 rounded-lg">
+                    <div className="col-span-full mb-2 flex items-center gap-2">
+                      <Users className="text-blue-600" size={18} />
+                      <h3 className="text-lg font-semibold text-gray-800">Direct Children Statistics</h3>
+                    </div>
+
+                    <StatBox label="Left Count" value={selectedUser.left?.userId ? 1 : 0} color="blue" />
+                    <StatBox label="Right Count" value={selectedUser.right?.userId ? 1 : 0} color="blue" />
+                    <StatBox label="Total Direct" value={(selectedUser.left?.userId ? 1 : 0) + (selectedUser.right?.userId ? 1 : 0)} color="blue" highlight />
+                    
+                    <div className="col-span-full md:col-span-3 lg:col-span-6 h-px bg-gray-200 my-2"></div>
+
+                    <CurrencyStatBox label="L Purchase Value" value={selectedUser.left?.totalSales || 0} />
+                    <CurrencyStatBox label="R Purchase Value" value={selectedUser.right?.totalSales || 0} />
+                    <CurrencyStatBox label="Total Purchase" value={(selectedUser.left?.totalSales || 0) + (selectedUser.right?.totalSales || 0)} highlight />
+                    
+                    <CurrencyStatBox label="L Income" value={(selectedUser.left?.directIncome || 0) + (selectedUser.left?.indirectIncome || 0)} />
+                    <CurrencyStatBox label="R Income" value={(selectedUser.right?.directIncome || 0) + (selectedUser.right?.indirectIncome || 0)} />
+                    <CurrencyStatBox label="Total Income" value={((selectedUser.left?.directIncome || 0) + (selectedUser.left?.indirectIncome || 0)) + ((selectedUser.right?.directIncome || 0) + (selectedUser.right?.indirectIncome || 0))} highlight />
+                  </section>
+
+                  {/* Section 4: Indirect Children Statistics (Subtree) - For Customers and Founders */}
+                  {(selectedUser.userType === 'customer' || selectedUser.userType === 'founder') && (
+                    <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 border border-purple-100 p-4 rounded-lg">
+                      <div className="col-span-full mb-2 flex items-center gap-2">
+                        <Package className="text-purple-600" size={18} />
+                        <h3 className="text-lg font-semibold text-gray-800">Indirect Team Statistics</h3>
+                      </div>
+
+                      {(() => {
+                        const leftSubtreeStats = getSubtreeStats(selectedUser.left, true);
+                        const rightSubtreeStats = getSubtreeStats(selectedUser.right, true);
+                        return (
+                          <>
+                            <StatBox label="Left Count" value={leftSubtreeStats.count} color="purple" />
+                            <StatBox label="Right Count" value={rightSubtreeStats.count} color="purple" />
+                            <StatBox label="Total Indirect" value={leftSubtreeStats.count + rightSubtreeStats.count} color="purple" highlight />
+                            
+                            <div className="col-span-full md:col-span-3 lg:col-span-6 h-px bg-gray-200 my-2"></div>
+
+                            <CurrencyStatBox label="L Purchase Val" value={leftSubtreeStats.totalSales} />
+                            <CurrencyStatBox label="R Purchase Val" value={rightSubtreeStats.totalSales} />
+                            <CurrencyStatBox label="Total Purchase" value={leftSubtreeStats.totalSales + rightSubtreeStats.totalSales} highlight />
+                            
+                            <CurrencyStatBox label="L Income" value={leftSubtreeStats.totalIncome} />
+                            <CurrencyStatBox label="R Income" value={rightSubtreeStats.totalIncome} />
+                            <CurrencyStatBox label="Total Income" value={leftSubtreeStats.totalIncome + rightSubtreeStats.totalIncome} highlight />
+                          </>
+                        );
+                      })()}
+                    </section>
+                  )}
+
+                  {/* Section 5: Overall Income Summary */}
+                  <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="col-span-full mb-2 flex items-center gap-2 pb-2 border-b">
+                      <Wallet className="text-green-600" size={18} />
+                      <h3 className="text-lg font-semibold text-gray-800">Income Summary</h3>
+                    </div>
+
+                    <div className="bg-blue-50 p-4 rounded-lg text-center border border-blue-100">
+                      <p className="text-xs text-blue-600 mb-1">Direct Income</p>
+                      <p className="text-2xl font-bold text-blue-800">₹{(selectedUser.directIncome || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg text-center border border-purple-100">
+                      <p className="text-xs text-purple-600 mb-1">Indirect Income</p>
+                      <p className="text-2xl font-bold text-purple-800">₹{(selectedUser.indirectIncome || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg text-center border border-green-100">
+                      <p className="text-xs text-green-600 mb-1">Total Income</p>
+                      <p className="text-2xl font-bold text-green-800">₹{((selectedUser.directIncome || 0) + (selectedUser.indirectIncome || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                    </div>
+                  </section>
+
+                  {/* Section 6: Order & Purchase Summary */}
                   {userDetail && (
-                    <section className="grid grid-cols-3 gap-4">
-                      <div className="bg-blue-50 p-4 rounded-lg text-center"><p className="text-xs text-blue-600 mb-1">Orders</p><p className="text-2xl font-bold text-blue-800">{userDetail.orderCount || 0}</p></div>
-                      <div className="bg-green-50 p-4 rounded-lg text-center"><p className="text-xs text-green-600 mb-1">Total Spent</p><p className="text-2xl font-bold text-green-800">₹{(userDetail.totalSpent || 0).toLocaleString('en-IN')}</p></div>
-                      <div className="bg-purple-50 p-4 rounded-lg text-center"><p className="text-xs text-purple-600 mb-1">Type</p><p className="text-lg font-bold text-purple-800">{selectedUser.userType === 'brand_owner' ? 'Brand Owner' : selectedUser.userType === 'founder' ? 'Founder' : 'Customer'}</p></div>
+                    <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="col-span-full mb-2 flex items-center gap-2 pb-2 border-b">
+                        <Package className="text-orange-600" size={18} />
+                        <h3 className="text-lg font-semibold text-gray-800">Order Summary</h3>
+                      </div>
+
+                      <div className="bg-blue-50 p-4 rounded-lg text-center border border-blue-100">
+                        <p className="text-xs text-blue-600 mb-1">Total Orders</p>
+                        <p className="text-2xl font-bold text-blue-800">{userDetail.orderCount || 0}</p>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg text-center border border-green-100">
+                        <p className="text-xs text-green-600 mb-1">Total Spent</p>
+                        <p className="text-2xl font-bold text-green-800">₹{(userDetail.totalSpent || 0).toLocaleString('en-IN')}</p>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg text-center border border-purple-100">
+                        <p className="text-xs text-purple-600 mb-1">Total Sales</p>
+                        <p className="text-2xl font-bold text-purple-800">₹{(selectedUser.totalSales || 0).toLocaleString('en-IN')}</p>
+                      </div>
                     </section>
                   )}
                 </>

@@ -642,7 +642,7 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
             {/* Financial Overview */}
             <div className="mb-8 p-4 bg-blue-50 rounded-lg">
               <h3 className="text-lg font-semibold mb-4">Financial Overview</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-lg shadow">
                   <div className="text-sm text-gray-500 mb-1">Total Payout</div>
                   <div className="text-2xl font-bold text-blue-600">
@@ -672,15 +672,6 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
                     ₹{financialData.creditWallet}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Reward Credits earned</div>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <div className="text-sm text-gray-500 mb-1">Total Purchase Value</div>
-                  <div className="text-lg font-bold text-orange-600">
-                    Franchise A: ₹{financialData.franchiseAPurchaseValue}
-                  </div>
-                  <div className="text-lg font-bold text-orange-600">
-                    Franchise B: ₹{financialData.franchiseBPurchaseValue}
-                  </div>
                 </div>
               </div>
             </div>
@@ -1132,28 +1123,6 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
               </div>
             </div>
             
-            {/* Reward Structure Information */}
-            <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Reward Structure</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">First ₹200,000 turnover:</span>
-                  <span className="font-medium">10 Reward Credits</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Next ₹500,000 turnover:</span>
-                  <span className="font-medium">15 Reward Credits</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Next ₹1,000,000 turnover:</span>
-                  <span className="font-medium">20 Reward Credits</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Every additional ₹2,000,000:</span>
-                  <span className="font-medium">25 Reward Credits</span>
-                </div>
-              </div>
-            </div>
             
             {/* Credit History */}
             <div>
@@ -1218,228 +1187,6 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
                 </div>
               )}
             </div>
-          </div>
-        );
-        
-      case 'franchiseA':
-        return (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Franchise A (Left Team)</h2>
-            {franchiseA ? (
-              <div>
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Current Turnover</div>
-                      <div className="text-xl font-bold text-blue-600">₹{financialData.franchiseATurnover.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Credits Earned</div>
-                      <div className="text-xl font-bold text-purple-600">{calculateRewardCredits(financialData.franchiseATurnover)}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Next Threshold</div>
-                      <div className="text-sm font-medium">
-                        {financialData.franchiseATurnover < 200000 
-                          ? `₹${(200000 - financialData.franchiseATurnover).toLocaleString()}`
-                          : financialData.franchiseATurnover < 700000
-                          ? `₹${(700000 - financialData.franchiseATurnover).toLocaleString()}`
-                          : financialData.franchiseATurnover < 1700000
-                          ? `₹${(1700000 - financialData.franchiseATurnover).toLocaleString()}`
-                          : `₹${(Math.ceil(financialData.franchiseATurnover / 2000000) * 2000000 - financialData.franchiseATurnover).toLocaleString()}`
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          S.No
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User ID
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User Name
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date of Joining
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          KYC Status
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Purchase Value
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {franchiseA.direct ? (
-                        <tr>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{franchiseA.direct.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{franchiseA.direct.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{franchiseA.direct.joinDate}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              franchiseA.direct.kycVerified 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {franchiseA.direct.kycVerified ? 'Verified' : 'Not Verified'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{franchiseA.direct.purchaseValue || 0}</td>
-                        </tr>
-                      ) : (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                            No direct referral in Franchise A
-                          </td>
-                        </tr>
-                      )}
-                      {(franchiseA.grandchildren || []).map((child, index) => (
-                        <tr key={child.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 2}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{child.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{child.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{child.joinDate}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              child.kycVerified 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {child.kycVerified ? 'Verified' : 'Not Verified'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{child.purchaseValue || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <p className="text-center text-gray-500">No data available for Franchise A</p>
-              </div>
-            )}
-          </div>
-        );
-        
-      case 'franchiseB':
-        return (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Franchise B (Right Team)</h2>
-            {franchiseB ? (
-              <div>
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Current Turnover</div>
-                      <div className="text-xl font-bold text-blue-600">₹{financialData.franchiseBTurnover.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Credits Earned</div>
-                      <div className="text-xl font-bold text-purple-600">{calculateRewardCredits(financialData.franchiseBTurnover)}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Next Threshold</div>
-                      <div className="text-sm font-medium">
-                        {financialData.franchiseBTurnover < 200000 
-                          ? `₹${(200000 - financialData.franchiseBTurnover).toLocaleString()}`
-                          : financialData.franchiseBTurnover < 700000
-                          ? `₹${(700000 - financialData.franchiseBTurnover).toLocaleString()}`
-                          : financialData.franchiseBTurnover < 1700000
-                          ? `₹${(1700000 - financialData.franchiseBTurnover).toLocaleString()}`
-                          : `₹${(Math.ceil(financialData.franchiseBTurnover / 2000000) * 2000000 - financialData.franchiseBTurnover).toLocaleString()}`
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          S.No
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User ID
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User Name
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date of Joining
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          KYC Status
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Purchase Value
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {franchiseB.direct ? (
-                        <tr>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{franchiseB.direct.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{franchiseB.direct.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{franchiseB.direct.joinDate}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              franchiseB.direct.kycVerified 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {franchiseB.direct.kycVerified ? 'Verified' : 'Not Verified'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{franchiseB.direct.purchaseValue || 0}</td>
-                        </tr>
-                      ) : (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                            No direct referral in Franchise B
-                          </td>
-                        </tr>
-                      )}
-                      {(franchiseB.grandchildren || []).map((child, index) => (
-                        <tr key={child.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 2}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{child.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{child.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{child.joinDate}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              child.kycVerified 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {child.kycVerified ? 'Verified' : 'Not Verified'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{child.purchaseValue || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <p className="text-center text-gray-500">No data available for Franchise B</p>
-              </div>
-            )}
           </div>
         );
         
@@ -1814,33 +1561,6 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
                 }`}
               >
                 Dashboard
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('franchiseA');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'franchiseA' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Franchise A
-              </button>
-              
-              <button
-                onClick={() => {
-                  setActiveTab('franchiseB');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'franchiseB' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Franchise B
               </button>
               <button
                 onClick={() => {
