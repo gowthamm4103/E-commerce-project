@@ -951,29 +951,6 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
               </button>
             </div>
             
-            {/* Tax Information */}
-            <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Tax Information</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Up to ₹10,000:</span>
-                  <span className="font-medium">No Tax</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">₹10,001 to ₹50,000:</span>
-                  <span className="font-medium">5% Tax</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">₹50,001 to ₹100,000:</span>
-                  <span className="font-medium">10% Tax</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Above ₹100,000:</span>
-                  <span className="font-medium">15% Tax</span>
-                </div>
-              </div>
-            </div>
-            
             {/* Transaction History */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Withdrawal History</h3>
