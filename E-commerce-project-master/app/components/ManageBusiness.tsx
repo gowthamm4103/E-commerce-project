@@ -474,7 +474,19 @@ export default function ManageBusiness({ user }: Props) {
                     }`}>{inv.paymentStatus}</span>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
-                    <button onClick={async () => { await invoicesAPI.delete(inv._id); await loadAll(); }}
+                    <button onClick={async () => {
+                      if (!confirm('Are you sure you want to delete this invoice?')) return;
+                      try {
+                        await invoicesAPI.delete(inv._id);
+                        await loadAll();
+                      } catch (err: any) {
+                        if (err.message === 'Invoice not found.') {
+                          alert('This invoice has already been deleted or no longer exists.');
+                        } else {
+                          alert(err.message || 'Failed to delete invoice');
+                        }
+                      }
+                    }}
                       className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>

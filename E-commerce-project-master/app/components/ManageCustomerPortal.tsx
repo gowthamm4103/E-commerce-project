@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-import { Check, Copy, X, Menu } from 'lucide-react';
+import { Check, Copy, X, Menu, ArrowLeft, Edit, Eye } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -202,58 +202,95 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard, onNavigateT
       case 'overview':
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
+            {/* Header Section - Title on left, Back button on right */}
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Manage Customer Portal</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Manage Customer Portal</h2>
               <button
                 onClick={onSwitchToDashboard}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center"
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+                <ArrowLeft size={18} />
                 Back to Dashboard
               </button>
             </div>
             
             {portalData ? (
               <div className="space-y-6">
-                {/* Brand Identity Section */}
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">Brand Identity</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Portal Details Section - Two columns with vertical divider */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Section - Brand Name and Tagline */}
+                  <div className="space-y-4">
                     <div>
-                      <span className="text-sm text-gray-500">Brand Name</span>
-                      <p className="font-medium">{portalData.brandName || 'Not set'}</p>
+                      <label className="block text-sm font-bold text-gray-800 mb-1">Brand Name</label>
+                      <p className="text font-medium text-gray-500">{portalData.brandName || 'Not set'}</p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-500">Brand Tagline</span>
-                      <p className="font-medium">{portalData.brandTagline || 'Not set'}</p>
+                      <label className="block text-sm font-bold text-gray-800 mb-1">Brand Tagline</label>
+                      <p className="text-gray-500">{portalData.brandTagline || 'Not set'}</p>
                     </div>
+                  </div>
+                  
+                  {/* Right Section - Portal URL and Dates */}
+                  <div className="space-y-4 md:border-l md:border-gray-200 md:pl-6">
                     <div>
-                      <span className="text-sm text-gray-500">Portal URL</span>
-                      <div className="flex items-center">
-                        <p className="font-medium mr-2 text-sm truncate">{window.location.origin}/{user.userId}/portal/{portalData.url}</p>
+                      <label className="block text-sm font-bold text-gray-800 mb-1">Portal URL</label>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-blue-600 truncate">
+                          {`${window.location.origin}/${user.userId}/portal/${portalData.url}`}
+                        </p>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(`${window.location.origin}/${user.userId}/portal/${portalData.url}`);
-                            alert("Link copied to clipboard!");
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
                           }}
-                          className="text-blue-600 hover:text-blue-800 flex-shrink-0"
+                          className="text-blue-600 hover:text-blue-600 flex-shrink-0 cursor-pointer"
+                          title="Copy URL"
                         >
-                          <Copy size={16} />
+                          {copied ? <Check size={16} /> : <Copy size={16} />}
                         </button>
+                      </div>
+                    </div>
+                    <div className="flex items-end">
+                      <div className="flex-1 pr-2 border-r border-gray-200">
+                        <label className="block text-sm font-bold text-gray-800 mb-1">Created Date</label>
+                        <p className="text-sm text-gray-700">
+                          {portalData.createdAt ? new Date(portalData.createdAt).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="flex-1 pl-2">
+                        <label className="block text-sm font-bold text-gray-800 mb-1">Last Updated Date</label>
+                        <p className="text-sm text-gray-700">
+                          {portalData.updatedAt ? new Date(portalData.updatedAt).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Social Media Section */}
-                <div className="bg-green-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">Social Media Links</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-gray-500">Facebook</span>
-                      <p className="font-medium text-sm truncate">
+                
+                {/* Horizontal Divider */}
+                <hr className="border-gray-200" />
+                
+                {/* Social Media Links Section */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Social Media Links</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Facebook */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-bold text-gray-800 mb-1">Facebook</p>
+                      <p className="text-sm text-gray-600 truncate">
                         {portalData.facebookUrl ? (
                           <a href={portalData.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                             {portalData.facebookUrl}
@@ -261,19 +298,11 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard, onNavigateT
                         ) : 'Not configured'}
                       </p>
                     </div>
-                    <div>
-                      <span className="text-sm text-gray-500">LinkedIn</span>
-                      <p className="font-medium text-sm truncate">
-                        {portalData.linkedInUrl ? (
-                          <a href={portalData.linkedInUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            {portalData.linkedInUrl}
-                          </a>
-                        ) : 'Not configured'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500">Instagram</span>
-                      <p className="font-medium text-sm truncate">
+                    
+                    {/* Instagram */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-bold text-gray-800 mb-1">Instagram</p>
+                      <p className="text-sm text-gray-600 truncate">
                         {portalData.instagramUrl ? (
                           <a href={portalData.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                             {portalData.instagramUrl}
@@ -281,9 +310,23 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard, onNavigateT
                         ) : 'Not configured'}
                       </p>
                     </div>
-                    <div>
-                      <span className="text-sm text-gray-500">X (Twitter)</span>
-                      <p className="font-medium text-sm truncate">
+                    
+                    {/* LinkedIn */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-bold text-gray-800 mb-1">LinkedIn</p>
+                      <p className="text-sm text-gray-600 truncate">
+                        {portalData.linkedInUrl ? (
+                          <a href={portalData.linkedInUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {portalData.linkedInUrl}
+                          </a>
+                        ) : 'Not configured'}
+                      </p>
+                    </div>
+                    
+                    {/* X (Twitter) */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-bold text-gray-800 mb-1">X (Twitter)</p>
+                      <p className="text-sm text-gray-600 truncate">
                         {portalData.twitterUrl ? (
                           <a href={portalData.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                             {portalData.twitterUrl}
@@ -294,32 +337,20 @@ const ManageCustomerPortal = ({ user, onLogout, onSwitchToDashboard, onNavigateT
                   </div>
                 </div>
                 
-                {/* Timestamps and Actions */}
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <span className="text-sm text-gray-500">Created</span>
-                      <p className="font-medium">{new Date(portalData.createdAt).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500">Last Updated</span>
-                      <p className="font-medium">{new Date(portalData.updatedAt).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <button
-                      onClick={() => setSetupStep(1)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      Edit Portal
-                    </button>
-                    <button
-                      onClick={handlePreviewPortal}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                    >
-                      Preview Portal
-                    </button>
-                  </div>
+                {/* Action Buttons - Bottom Left */}
+                <div className="flex justify-start gap-4 pt-4">
+                  <button
+                    onClick={() => setSetupStep(1)}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 transition-colors"
+                  >
+                    Edit Portal
+                  </button>
+                  <button
+                    onClick={handlePreviewPortal}
+                    className="px-6 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 transition-colors"
+                  >
+                    Preview Portal
+                  </button>
                 </div>
               </div>
             ) : (

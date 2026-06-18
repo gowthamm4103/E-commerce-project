@@ -637,7 +637,7 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
       case 'profile':
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Entrepreneur Dashboard</h2>
+            <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
             
             {/* Financial Overview */}
             <div className="mb-8 p-4 bg-blue-50 rounded-lg">
