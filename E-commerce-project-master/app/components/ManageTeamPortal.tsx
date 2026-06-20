@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-import { Check, Copy, X, Menu } from 'lucide-react';
+import { Check, Copy, X, Menu, LayoutDashboard, ArrowLeft } from 'lucide-react';
 import Header from './Header';
-import Footer from './Footer';
+import Sidebar from './Sidebar';
 import { portalsAPI } from '../lib/api';
 
 import TeamPortalSetupStep1 from './TeamPortalSetupStep1';
@@ -21,7 +21,8 @@ interface ManageTeamPortalProps {
 
 const ManageTeamPortal = ({ user, onLogout, onSwitchToDashboard }: ManageTeamPortalProps): JSX.Element => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -239,83 +240,43 @@ const ManageTeamPortal = ({ user, onLogout, onSwitchToDashboard }: ManageTeamPor
           companyDropdownRef={companyDropdownRef}
           setCurrentPage={() => {}}
           setShowAuth={() => {}}
-          showSecondaryHeader={true}
-          secondaryTitle="Manage Team Portal"
-          onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
+          showSecondaryHeader={false}
+          secondaryTitle=""
+          onMenuClick={() => {}}
         />
       
-      {/* Dashboard Header with Menu */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-8xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              {/* Menu Button */}
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              
-              <div className="flex items-center space-x-4">
-                <div className="text-1xl text-gray-600">
-                  Welcome, <span className="font-semibold">{user.name}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Side Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black opacity-50" onClick={() => setIsMenuOpen(false)}></div>
-          <div className="relative flex flex-col w-64 bg-white h-full shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b">
-              <div className="text-lg font-semibold">Menu</div>
-              <button 
-                onClick={() => setIsMenuOpen(false)}
-                className="p-1 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto py-2">
-              <button
-                onClick={() => {
-                  setActiveTab('overview');
-                  setSetupStep(0);
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  (activeTab === 'overview' && setupStep === 0) 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Portal Overview
-              </button>
-              <button
-                onClick={() => {
-                  onSwitchToDashboard();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Sidebar */}
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onClose={() => setIsSidebarOpen(false)}
+        items={[
+          {
+            id: 'overview',
+            icon: <LayoutDashboard size={20} />,
+            label: 'Portal Overview',
+            onClick: () => {
+              setActiveTab('overview');
+              setSetupStep(0);
+            },
+            isActive: activeTab === 'overview' && setupStep === 0
+          },
+          {
+            id: 'dashboard',
+            icon: <ArrowLeft size={20} />,
+            label: 'Back to Dashboard',
+            onClick: () => onSwitchToDashboard(),
+            isActive: false
+          }
+        ]}
+      />
       
       {/* Main Content */}
-      <div className="max-w-8xl mx-auto px-4 py-8">
+      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
+        <div className="max-w-8xl mx-auto">
         {renderTabContent()}
+        </div>
       </div>
       
       {/* Profile Modal */}
@@ -372,8 +333,6 @@ const ManageTeamPortal = ({ user, onLogout, onSwitchToDashboard }: ManageTeamPor
         </div>
       )}
       
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

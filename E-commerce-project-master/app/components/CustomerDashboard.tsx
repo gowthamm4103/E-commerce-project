@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Wallet, Award, ChevronDown, ChevronRight, Check, Copy, X, Menu, Plus } from 'lucide-react';
+import { Wallet, Award, ChevronDown, ChevronRight, Check, Copy, X, Plus, LayoutDashboard, CreditCard, DollarSign, FileText, Banknote, Store } from 'lucide-react';
 import Header from './Header';
-import Footer from './Footer';
+import Sidebar, { SidebarItem } from './Sidebar';
 import { walletAPI, mlmAPI, authAPI, setAuthErrorHandler, clearAuthErrorHandler, getToken } from '../lib/api';
 import type { PageName, UserData } from '../types';
 import CategoryPage from './CategoryPage';
@@ -46,7 +46,8 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
   const [portalRefreshKey, setPortalRefreshKey] = useState(0); // Used to trigger portal status refresh
 
   const [activeTab, setActiveTab] = useState('profile');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1452,6 +1453,11 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
           setPortalRefreshKey(prev => prev + 1); // Trigger portal status refresh
           setActiveTab(tab);
         }}
+        // Pass sidebar state for persistence across navigation
+        isSidebarOpen={isSidebarOpen}
+        isSidebarCollapsed={isSidebarCollapsed}
+        setIsSidebarOpen={setIsSidebarOpen}
+        setIsSidebarCollapsed={setIsSidebarCollapsed}
       />
     );
   }
@@ -1477,142 +1483,70 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
   companyDropdownRef={companyDropdownRef}
   setCurrentPage={setCurrentPage || (() => {})}
   setShowAuth={() => {}}
-  showSecondaryHeader={currentPage === 'customerDashboard' || currentPage === 'founderDashboard' || !currentPage}
-  secondaryTitle={user.userType === 'founder' ? "Founder Dashboard" : "Customer Dashboard"}
-  onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
+  showSecondaryHeader={false}
+  secondaryTitle=""
+  onMenuClick={() => {}}
   onPortalClick={handleSwitchToPortal}
   currentPage={currentPage}
   hasPortal={hasPortal}
 />
 
 
-      {/* Dashboard Header with Menu - only on dashboard page */}
-      {(currentPage === 'customerDashboard' || currentPage === 'founderDashboard' || !currentPage) && (
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-8xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              {/* Menu Button */}
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              
-              <div className="flex items-center space-x-4">
-                <div className="text-1xl text-gray-600">
-                  Welcome, <span className="font-semibold">{user.name}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
-      
-      {/* Side Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black opacity-50" onClick={() => setIsMenuOpen(false)}></div>
-          <div className="relative flex flex-col w-64 bg-white h-full shadow-xl">
-            <div className="flex items-center justify-between p-4">
-              <div className="text-lg font-semibold">Menu</div>
-              <button 
-                onClick={() => setIsMenuOpen(false)}
-                className="p-1 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto py-2">
-              <button
-                onClick={() => {
-                  setActiveTab('profile');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'profile' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('ewallet');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'ewallet' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                E-Wallet
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('incomewallet');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'incomewallet' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Income Wallet
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('kyc');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'kyc' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                KYC Verification
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('bank');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                  activeTab === 'bank' 
-                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Add Bank Account
-              </button>
-              {hasPortal && (
-                <button
-                  onClick={() => {
-                    handleSwitchToPortal();
-                    setIsMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm font-medium ${
-                    showPortalManagement 
-                      ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Manage Customer Portal
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Sidebar */}
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onClose={() => setIsSidebarOpen(false)}
+        items={[
+          {
+            id: 'profile',
+            icon: <LayoutDashboard size={20} />,
+            label: 'Dashboard',
+            onClick: () => setActiveTab('profile'),
+            isActive: activeTab === 'profile'
+          },
+          {
+            id: 'ewallet',
+            icon: <CreditCard size={20} />,
+            label: 'E-Wallet',
+            onClick: () => setActiveTab('ewallet'),
+            isActive: activeTab === 'ewallet'
+          },
+          {
+            id: 'incomewallet',
+            icon: <DollarSign size={20} />,
+            label: 'Income Wallet',
+            onClick: () => setActiveTab('incomewallet'),
+            isActive: activeTab === 'incomewallet'
+          },
+          {
+            id: 'kyc',
+            icon: <FileText size={20} />,
+            label: 'KYC Verification',
+            onClick: () => setActiveTab('kyc'),
+            isActive: activeTab === 'kyc'
+          },
+          {
+            id: 'bank',
+            icon: <Banknote size={20} />,
+            label: 'Add Bank Account',
+            onClick: () => setActiveTab('bank'),
+            isActive: activeTab === 'bank'
+          },
+          ...(hasPortal ? [{
+            id: 'portal',
+            icon: <Store size={20} />,
+            label: 'Manage Customer Portal',
+            onClick: () => handleSwitchToPortal(),
+            isActive: showPortalManagement
+          }] : [])
+        ]}
+      />
       
       {/* Main Content */}
-      <div className="max-w-8xl mx-auto px-4 py-8">
+      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
+        <div className="max-w-8xl mx-auto">
         {currentPage === 'landing' && (
           <LandingPage setCurrentPage={setCurrentPage} onNavigateToSignup={onNavigateToSignup} hideHeader={true} currentPage={currentPage} />
         )}
@@ -1648,6 +1582,7 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
         {currentPage === 'bankings' && <BankingsPage setCurrentPage={setCurrentPage} onNavigateToSignup={onNavigateToSignup} hideHeader={true} />}
         {currentPage === 'legals' && <LegalsPage setCurrentPage={setCurrentPage} onNavigateToSignup={onNavigateToSignup} hideHeader={true} />}
         {(currentPage === 'customerDashboard' || currentPage === 'founderDashboard' || !currentPage) && renderTabContent()}
+        </div>
       </div>
       
       {/* Modals */}
@@ -1708,8 +1643,6 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
         </div>
       )}
       
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

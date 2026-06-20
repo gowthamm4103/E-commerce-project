@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Header from "./Header";
-import Footer from "./Footer";
+import Sidebar from "./Sidebar";
 import type { PageName, UserData } from "../types";
 import {
   Plus,
@@ -38,6 +38,8 @@ import {
   LogOut,
   Award,
   MoreVertical,
+  LayoutDashboard,
+  CreditCard,
 } from "lucide-react";
 import { walletAPI, mlmAPI, authAPI, productsAPI, businessAPI } from "../lib/api";
 import ManageTeamPortal from "./ManageTeamPortal";
@@ -85,6 +87,8 @@ function BrandOwnerDashboard({
   const [showTeamPortal, setShowTeamPortal] = useState(false);
   const [showTeamMemberPortal, setShowTeamMemberPortal] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -1460,95 +1464,6 @@ function BrandOwnerDashboard({
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <button
-                onClick={() => setActiveTab("products")}
-                className="p-4 bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-lg hover:from-orange-500 hover:to-orange-600 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">Manage Products</div>
-                <div className="text-sm opacity-90 mt-1">
-                  Add, edit, or remove products
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("team")}
-                className="p-4 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg hover:from-slate-600 hover:to-slate-700 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">Manage Team Members</div>
-                <div className="text-sm opacity-90 mt-1">
-                  Add or remove team members
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("ewallet")}
-                className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">E-Wallet</div>
-                <div className="text-sm opacity-90 mt-1">
-                  Add money to wallet
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("incomewallet")}
-                className="p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">Income Wallet</div>
-                <div className="text-sm opacity-90 mt-1">Withdraw earnings</div>
-              </button>
-              <button
-                onClick={() => setActiveTab("kyc")}
-                className="p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">KYC Verification</div>
-                <div className="text-sm opacity-90 mt-1">
-                  Complete your verification
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("bank")}
-                className="p-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-lg hover:from-blue-600 hover:to-teal-600 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">
-                  Bank Account Verification
-                </div>
-                <div className="text-sm opacity-90 mt-1">
-                  Verify your bank details
-                </div>
-              </button>
-              <button
-                onClick={() => setShowInvoiceModal(true)}
-                className="p-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">Create Invoice</div>
-                <div className="text-sm opacity-90 mt-1">
-                  Generate customer invoices
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("coupons")}
-                className="p-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all shadow-md"
-              >
-                <div className="text-lg font-semibold">Manage Coupons</div>
-                <div className="text-sm opacity-90 mt-1">
-                  Create and manage discount coupons
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("manageBusiness")}
-                className="p-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-md"
-              >
-                <div className="flex items-center">
-                  <Store size={24} className="mr-3" />
-                  <div className="text-left">
-                    <div className="font-semibold">Manage Business</div>
-                    <div className="text-sm opacity-90">
-                      Complete business management
-                    </div>
-                  </div>
-                </div>
-              </button>
-            </div>
           </div>
         );
 
@@ -1848,29 +1763,6 @@ function BrandOwnerDashboard({
               >
                 Proceed with Withdrawal
               </button>
-            </div>
-
-            {/* Tax Information */}
-            <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Tax Information</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Up to ₹10,000:</span>
-                  <span className="font-medium">No Tax</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">₹10,001 to ₹50,000:</span>
-                  <span className="font-medium">5% Tax</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">₹50,001 to ₹100,000:</span>
-                  <span className="font-medium">10% Tax</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Above ₹100,000:</span>
-                  <span className="font-medium">15% Tax</span>
-                </div>
-              </div>
             </div>
 
             {/* Transaction History */}
@@ -7677,13 +7569,100 @@ function BrandOwnerDashboard({
         isCompanyDropdownOpen={isCompanyDropdownOpen}
         setIsCompanyDropdownOpen={setIsCompanyDropdownOpen}
         companyDropdownRef={companyDropdownRef}
-        setCurrentPage={handleSetCurrentPage} // KEEP ONLY THIS
+        setCurrentPage={handleSetCurrentPage}
         setShowAuth={() => {}}
-        showSecondaryHeader={currentPage === 'brandOwnerDashboard' || !currentPage}
-        secondaryTitle="Brand Owner Dashboard"
+        showSecondaryHeader={false}
+        secondaryTitle=""
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onPortalClick={handlePortalClick}
         currentPage={currentPage}
+      />
+
+      {/* Sidebar */}
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onClose={() => setIsSidebarOpen(false)}
+        items={[
+          {
+            id: 'dashboard',
+            icon: <LayoutDashboard size={20} />,
+            label: 'Dashboard',
+            onClick: () => setActiveTab('dashboard'),
+            isActive: activeTab === 'dashboard'
+          },
+          {
+            id: 'products',
+            icon: <Package size={20} />,
+            label: 'Products',
+            onClick: () => setActiveTab('products'),
+            isActive: activeTab === 'products'
+          },
+          {
+            id: 'addproduct',
+            icon: <Plus size={20} />,
+            label: 'Add Product',
+            onClick: () => setActiveTab('addproduct'),
+            isActive: activeTab === 'addproduct'
+          },
+          {
+            id: 'addaccessory',
+            icon: <Plus size={20} />,
+            label: 'Add Accessory',
+            onClick: () => setActiveTab('addaccessory'),
+            isActive: activeTab === 'addaccessory'
+          },
+          {
+            id: 'team',
+            icon: <User size={20} />,
+            label: 'Team Members',
+            onClick: () => setActiveTab('team'),
+            isActive: activeTab === 'team'
+          },
+          {
+            id: 'ewallet',
+            icon: <Wallet size={20} />,
+            label: 'E-Wallet',
+            onClick: () => setActiveTab('ewallet'),
+            isActive: activeTab === 'ewallet'
+          },
+          {
+            id: 'incomewallet',
+            icon: <Coins size={20} />,
+            label: 'Income Wallet',
+            onClick: () => setActiveTab('incomewallet'),
+            isActive: activeTab === 'incomewallet'
+          },
+          {
+            id: 'kyc',
+            icon: <Shield size={20} />,
+            label: 'KYC Verification',
+            onClick: () => setActiveTab('kyc'),
+            isActive: activeTab === 'kyc'
+          },
+          {
+            id: 'bank',
+            icon: <Award size={20} />,
+            label: 'Bank Account',
+            onClick: () => setActiveTab('bank'),
+            isActive: activeTab === 'bank'
+          },
+          {
+            id: 'coupons',
+            icon: <CreditCard size={20} />,
+            label: 'Manage Coupons',
+            onClick: () => setActiveTab('coupons'),
+            isActive: activeTab === 'coupons'
+          },
+          {
+            id: 'manageBusiness',
+            icon: <Store size={20} />,
+            label: 'Manage Business',
+            onClick: () => setActiveTab('manageBusiness'),
+            isActive: activeTab === 'manageBusiness'
+          }
+        ]}
       />
 
       {/* Menu Drawer */}
@@ -7723,32 +7702,9 @@ function BrandOwnerDashboard({
         </div>
       )}
 
-      {/* Dashboard Header with Menu - only on dashboard page */}
-      {(currentPage === 'brandOwnerDashboard' || !currentPage) && (
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-8xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-
-              <div className="flex items-center space-x-4">
-                <div className="text-1xl text-gray-600">
-                  Welcome, <span className="font-semibold">{user?.name}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
-
       {/* Main Content */}
-      <div className="max-w-8xl mx-auto px-4 py-8">
+      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
+        <div className="max-w-8xl mx-auto">
         {currentPage === "landing" && (
           <LandingPage
             setCurrentPage={setCurrentPage}
@@ -7826,6 +7782,7 @@ function BrandOwnerDashboard({
           currentPage === "customerDashboard" ||
           !currentPage) &&
           renderTabContent()}
+        </div>
       </div>
 
       {/* Profile Modal */}
@@ -7945,8 +7902,6 @@ function BrandOwnerDashboard({
         </div>
       )}
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }
