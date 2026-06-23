@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import { useSidebar } from "../context/SidebarContext";
 import type { PageName, UserData } from "../types";
 import {
   Plus,
@@ -41,7 +42,7 @@ import {
   LayoutDashboard,
   CreditCard,
 } from "lucide-react";
-import { walletAPI, mlmAPI, authAPI, productsAPI, businessAPI } from "../lib/api";
+import { walletAPI, mlmAPI, authAPI, productsAPI, businessAPI, getToken } from "../lib/api";
 import ManageTeamPortal from "./ManageTeamPortal";
 import CategoryPage from "./CategoryPage";
 import ShoppingCartPage from "./ShoppingCartPage";
@@ -86,9 +87,12 @@ function BrandOwnerDashboard({
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showTeamPortal, setShowTeamPortal] = useState(false);
   const [showTeamMemberPortal, setShowTeamMemberPortal] = useState(false);
+  const [hasTeamPortal, setHasTeamPortal] = useState(false);
+  const [showManageTeamPortalView, setShowManageTeamPortalView] = useState(false);
+  const [teamPortalRefreshKey, setTeamPortalRefreshKey] = useState(0);
+  const [teamPortalUrl, setTeamPortalUrl] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { isOpen: isSidebarOpen, isCollapsed: isSidebarCollapsed, setIsOpen: setIsSidebarOpen, setIsCollapsed: setIsSidebarCollapsed } = useSidebar();
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -402,6 +406,42 @@ function BrandOwnerDashboard({
     };
     loadTeamMembers();
   }, []);
+
+  // Load team portal status
+  React.useEffect(() => {
+    const loadTeamPortalStatus = async () => {
+      // Check if token exists before making API calls
+      const token = getToken();
+      if (!token) {
+        console.warn('No authentication token found. Team portal status unavailable.');
+        setHasTeamPortal(false);
+        return;
+      }
+
+      try {
+        const { portalsAPI } = await import('../lib/api');
+        const res = await portalsAPI.getMyPortals();
+        console.log('Team portal status check:', res);
+        // Check if user has any team portals
+        if (res.success && res.portals && res.portals.some(p => p.portalType === 'team')) {
+          setHasTeamPortal(true);
+          // Find the team portal and store its URL
+          const teamPortal = res.portals.find(p => p.portalType === 'team');
+          if (teamPortal && teamPortal.url) {
+            setTeamPortalUrl(teamPortal.url);
+          }
+        } else {
+          setHasTeamPortal(false);
+          setTeamPortalUrl(null);
+        }
+      } catch (err) {
+        console.error('Failed to load team portal status:', err);
+        // If API fails, assume no team portal
+        setHasTeamPortal(false);
+      }
+    };
+    loadTeamPortalStatus();
+  }, [teamPortalRefreshKey]);
 
   // Add these functions
   const handleDuplicateProduct = (product) => {
@@ -1000,6 +1040,8 @@ function BrandOwnerDashboard({
   };
 
   const handleBackToDashboard = () => {
+    // Refresh team portal status when returning from ManageTeamPortal
+    setTeamPortalRefreshKey(prev => prev + 1);
     setShowTeamPortal(false);
   };
 
@@ -7351,6 +7393,92 @@ function BrandOwnerDashboard({
           <ManageBusiness user={user} />
         );
 
+      case "teamportal":
+        return (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Manage Team Portal</h2>
+            </div>
+            
+            {/* Team Portal Content - Inline version with all features */}
+            {hasTeamPortal ? (
+              <div className="space-y-6">
+                {/* Portal Details Card */}
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">Portal Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm text-gray-500">Brand Name</span>
+                      <p className="font-medium">{user?.name || 'Your Brand'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Portal URL</span>
+                      <div className="flex items-center">
+                        <p className="font-medium mr-2">{window.location.origin}/team-portal/{teamPortalUrl || user?.userId}</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/team-portal/${teamPortalUrl || user?.userId}`);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                            alert("Link copied to clipboard!");
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Copy size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Created</span>
+                      <p className="font-medium">{new Date().toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Last Updated</span>
+                      <p className="font-medium">{new Date().toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <button
+                    onClick={() => {
+                      setShowTeamPortal(true);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Edit Portal
+                  </button>
+                  <button
+                    onClick={() => window.open(`${window.location.origin}/team-portal/${teamPortalUrl || user?.userId}`, '_blank')}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  >
+                    Preview Portal
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="mb-6">
+                  <div className="mx-auto w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Team Portal Created Yet</h3>
+                <p className="text-gray-600 mb-6">Create your personalized team portal to start building your brand.</p>
+                <button
+                  onClick={() => setShowTeamPortal(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Set Up Team Portal
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
       default:
         return null;
     }
@@ -7576,135 +7704,147 @@ function BrandOwnerDashboard({
         onMenuClick={() => setIsMenuOpen(!isMenuOpen)}
         onPortalClick={handlePortalClick}
         currentPage={currentPage}
+        hasPortal={hasTeamPortal}
       />
 
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        isOpen={isSidebarOpen}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        onClose={() => setIsSidebarOpen(false)}
-        items={[
-          {
-            id: 'dashboard',
-            icon: <LayoutDashboard size={20} />,
-            label: 'Dashboard',
-            onClick: () => setActiveTab('dashboard'),
-            isActive: activeTab === 'dashboard'
-          },
-          {
-            id: 'products',
-            icon: <Package size={20} />,
-            label: 'Products',
-            onClick: () => setActiveTab('products'),
-            isActive: activeTab === 'products'
-          },
-          {
-            id: 'addproduct',
-            icon: <Plus size={20} />,
-            label: 'Add Product',
-            onClick: () => setActiveTab('addproduct'),
-            isActive: activeTab === 'addproduct'
-          },
-          {
-            id: 'addaccessory',
-            icon: <Plus size={20} />,
-            label: 'Add Accessory',
-            onClick: () => setActiveTab('addaccessory'),
-            isActive: activeTab === 'addaccessory'
-          },
-          {
-            id: 'team',
-            icon: <User size={20} />,
-            label: 'Team Members',
-            onClick: () => setActiveTab('team'),
-            isActive: activeTab === 'team'
-          },
-          {
-            id: 'ewallet',
-            icon: <Wallet size={20} />,
-            label: 'E-Wallet',
-            onClick: () => setActiveTab('ewallet'),
-            isActive: activeTab === 'ewallet'
-          },
-          {
-            id: 'incomewallet',
-            icon: <Coins size={20} />,
-            label: 'Income Wallet',
-            onClick: () => setActiveTab('incomewallet'),
-            isActive: activeTab === 'incomewallet'
-          },
-          {
-            id: 'kyc',
-            icon: <Shield size={20} />,
-            label: 'KYC Verification',
-            onClick: () => setActiveTab('kyc'),
-            isActive: activeTab === 'kyc'
-          },
-          {
-            id: 'bank',
-            icon: <Award size={20} />,
-            label: 'Bank Account',
-            onClick: () => setActiveTab('bank'),
-            isActive: activeTab === 'bank'
-          },
-          {
-            id: 'coupons',
-            icon: <CreditCard size={20} />,
-            label: 'Manage Coupons',
-            onClick: () => setActiveTab('coupons'),
-            isActive: activeTab === 'coupons'
-          },
-          {
-            id: 'manageBusiness',
-            icon: <Store size={20} />,
-            label: 'Manage Business',
-            onClick: () => setActiveTab('manageBusiness'),
-            isActive: activeTab === 'manageBusiness'
-          }
-        ]}
-      />
+      {/* Sidebar and Main Content Layout */}
+      <div className="flex">
+        {/* Sidebar - Only show on actual dashboard pages, not on shopping pages */}
+        {(currentPage === 'brandOwnerDashboard' || !currentPage) && (
+          <Sidebar
+            isCollapsed={isSidebarCollapsed}
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onClose={() => setIsSidebarOpen(false)}
+            items={[
+              {
+                id: 'dashboard',
+                icon: <LayoutDashboard size={20} />,
+                label: 'Dashboard',
+                onClick: () => setActiveTab('dashboard'),
+                isActive: activeTab === 'dashboard'
+              },
+              {
+                id: 'products',
+                icon: <Package size={20} />,
+                label: 'Products',
+                onClick: () => setActiveTab('products'),
+                isActive: activeTab === 'products'
+              },
+              {
+                id: 'addproduct',
+                icon: <Plus size={20} />,
+                label: 'Add Product',
+                onClick: () => setActiveTab('addproduct'),
+                isActive: activeTab === 'addproduct'
+              },
+              {
+                id: 'addaccessory',
+                icon: <Plus size={20} />,
+                label: 'Add Accessory',
+                onClick: () => setActiveTab('addaccessory'),
+                isActive: activeTab === 'addaccessory'
+              },
+              {
+                id: 'team',
+                icon: <User size={20} />,
+                label: 'Team Members',
+                onClick: () => setActiveTab('team'),
+                isActive: activeTab === 'team'
+              },
+              {
+                id: 'ewallet',
+                icon: <Wallet size={20} />,
+                label: 'E-Wallet',
+                onClick: () => setActiveTab('ewallet'),
+                isActive: activeTab === 'ewallet'
+              },
+              {
+                id: 'incomewallet',
+                icon: <Coins size={20} />,
+                label: 'Income Wallet',
+                onClick: () => setActiveTab('incomewallet'),
+                isActive: activeTab === 'incomewallet'
+              },
+              {
+                id: 'kyc',
+                icon: <Shield size={20} />,
+                label: 'KYC Verification',
+                onClick: () => setActiveTab('kyc'),
+                isActive: activeTab === 'kyc'
+              },
+              {
+                id: 'bank',
+                icon: <Award size={20} />,
+                label: 'Bank Account',
+                onClick: () => setActiveTab('bank'),
+                isActive: activeTab === 'bank'
+              },
+              {
+                id: 'coupons',
+                icon: <CreditCard size={20} />,
+                label: 'Manage Coupons',
+                onClick: () => setActiveTab('coupons'),
+                isActive: activeTab === 'coupons'
+              },
+              {
+                id: 'manageBusiness',
+                icon: <Store size={20} />,
+                label: 'Manage Business',
+                onClick: () => setActiveTab('manageBusiness'),
+                isActive: activeTab === 'manageBusiness'
+              },
+              ...(hasTeamPortal ? [{
+                id: 'teamportal',
+                icon: <Store size={20} />,
+                label: 'Manage Team Portal',
+                onClick: () => setActiveTab('teamportal'),
+                isActive: activeTab === 'teamportal'
+              }] : [])
+            ]}
+          />
+        )}
 
-      {/* Menu Drawer */}
-      {renderMenuDrawer()}
+        {/* Menu Drawer */}
+        {renderMenuDrawer()}
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Confirm Logout</h3>
-              <button
-                onClick={handleCancelLogout}
-                className="p-1 rounded hover:bg-gray-100"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to logout?
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleCancelLogout}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmLogout}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Logout
-              </button>
+        {/* Logout Confirmation Modal */}
+        {showLogoutConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Confirm Logout</h3>
+                <button
+                  onClick={handleCancelLogout}
+                  className="p-1 rounded hover:bg-gray-100"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to logout?
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCancelLogout}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmLogout}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content */}
-      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
-        <div className="max-w-8xl mx-auto">
+        {/* Main Content */}
+        <div className={`flex-1 overflow-x-hidden ${currentPage === 'landing' ? 'px-0' : 'px-4'}`} style={{ paddingTop: currentPage === 'landing' ? '0px' : '16px' }}>
+          <div className="max-w-8xl mx-auto">
         {currentPage === "landing" && (
           <LandingPage
             setCurrentPage={setCurrentPage}
@@ -7782,6 +7922,7 @@ function BrandOwnerDashboard({
           currentPage === "customerDashboard" ||
           !currentPage) &&
           renderTabContent()}
+          </div>
         </div>
       </div>
 

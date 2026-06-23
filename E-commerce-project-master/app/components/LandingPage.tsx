@@ -149,7 +149,7 @@ const LandingPage = ({
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className={hideHeader ? 'bg-white' : 'min-h-screen bg-white'}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;500;600;700;800&display=swap');
         
@@ -424,32 +424,33 @@ const LandingPage = ({
         </div>
       </section>
 
-      {/* Top Brands Section max-w-8xl mx-auto*/}
-      <div className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-900">Explore Brands</h2>
-          <a
-            href="/see-all-brands"
-            className="group inline-flex items-center text-lg font-semibold text-slate-900 hover:text-slate-600 transition-all"
-          >
-            View all
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 ml-2 transform group-hover:translate-x-1 transition-transform"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      {/* Top Brands Section */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-8xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-900">Explore Brands</h2>
+            <a
+              href="/see-all-brands"
+              className="group inline-flex items-center text-lg font-semibold text-slate-900 hover:text-slate-600 transition-all"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M17 8l4 4m0 0l-4 4m4-4H3"
-              />
-            </svg>
-          </a>
-        </div>
-        <div className="mx-auto max-w-[1400px] px-6 md:px-8 lg:px-16 xl:px-24 pb-12">
+              View all
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 ml-2 transform group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </svg>
+            </a>
+          </div>
+          <div className="pb-12">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {/* First Column */}
             <div className="flex flex-col gap-6">
@@ -596,7 +597,8 @@ const LandingPage = ({
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* Men's Popular Categories */}
       <section className="py- px-4 sm:px-6 lg:px-8 bg-white">

@@ -41,16 +41,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - integrated into layout, sits below header */}
       <aside
         className={`
-          fixed left-0 top-20 z-30 h-full bg-white shadow-lg
+          bg-white shadow-md
           transition-all duration-300 ease-in-out
           flex flex-col
           ${isCollapsed ? 'w-16' : 'w-64'}
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          flex-shrink-0
         `}
-        style={{ top: '80px' }}
+        style={{ height: 'calc(100vh - 64px)' }}
       >
         {/* Toggle Button */}
         <div className="flex items-center justify-between p-2 border-b border-gray-200">

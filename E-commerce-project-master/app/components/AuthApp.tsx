@@ -11,7 +11,7 @@ import PortalLogin from './PortalLogin';
 import PortalRegistration from './PortalRegistration';
 import type { UserData ,PageName} from '../types';
 import { CartProvider } from '../context/CartContext';
-import { setUserSession, removeUserSession } from '../lib/api';
+import { setUserSession, removeUserSession, getToken } from '../lib/api';
 
 import Login from './Login';
 import CustomerRegistration from './CustomerRegistration';
@@ -71,6 +71,15 @@ useEffect(() => {
 
   const handle2FASuccess = () => {
     if (!twoFactorAuthUser) { setCurrentView('login'); return; }
+    
+    // Verify token exists before proceeding
+    const token = getToken();
+    if (!token) {
+      console.error('Authentication error: No token found after login. Please try logging in again.');
+      setCurrentView('login');
+      return;
+    }
+    
     const userData = {
       userId: twoFactorAuthUser.userId,
       name: twoFactorAuthUser.name,
@@ -89,6 +98,15 @@ useEffect(() => {
 
   const handle2FASkip = () => {
     if (!twoFactorAuthUser) { setCurrentView('login'); return; }
+    
+    // Verify token exists before proceeding
+    const token = getToken();
+    if (!token) {
+      console.error('Authentication error: No token found after login. Please try logging in again.');
+      setCurrentView('login');
+      return;
+    }
+    
     const userData = {
       userId: twoFactorAuthUser.userId,
       name: twoFactorAuthUser.name,

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Wallet, Award, ChevronDown, ChevronRight, Check, Copy, X, Plus, LayoutDashboard, CreditCard, DollarSign, FileText, Banknote, Store } from 'lucide-react';
 import Header from './Header';
 import Sidebar, { SidebarItem } from './Sidebar';
+import { useSidebar } from '../context/SidebarContext';
 import { walletAPI, mlmAPI, authAPI, setAuthErrorHandler, clearAuthErrorHandler, getToken } from '../lib/api';
 import type { PageName, UserData } from '../types';
 import CategoryPage from './CategoryPage';
@@ -46,8 +47,7 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
   const [portalRefreshKey, setPortalRefreshKey] = useState(0); // Used to trigger portal status refresh
 
   const [activeTab, setActiveTab] = useState('profile');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { isOpen: isSidebarOpen, isCollapsed: isSidebarCollapsed, setIsOpen: setIsSidebarOpen, setIsCollapsed: setIsSidebarCollapsed } = useSidebar();
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1453,17 +1453,12 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
           setPortalRefreshKey(prev => prev + 1); // Trigger portal status refresh
           setActiveTab(tab);
         }}
-        // Pass sidebar state for persistence across navigation
-        isSidebarOpen={isSidebarOpen}
-        isSidebarCollapsed={isSidebarCollapsed}
-        setIsSidebarOpen={setIsSidebarOpen}
-        setIsSidebarCollapsed={setIsSidebarCollapsed}
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${currentPage === 'landing' ? 'bg-white' : 'bg-gray-50'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;500;600;700;800&display=swap');
         
@@ -1472,81 +1467,84 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
         }
       `}</style>
       
-        <Header 
-  user={user}
-  onLogout={onLogout}
-  onProfileClick={() => setShowProfileModal(true)}
-  searchQuery={searchQuery}
-  setSearchQuery={setSearchQuery}
-  isCompanyDropdownOpen={isCompanyDropdownOpen}
-  setIsCompanyDropdownOpen={setIsCompanyDropdownOpen}
-  companyDropdownRef={companyDropdownRef}
-  setCurrentPage={setCurrentPage || (() => {})}
-  setShowAuth={() => {}}
-  showSecondaryHeader={false}
-  secondaryTitle=""
-  onMenuClick={() => {}}
-  onPortalClick={handleSwitchToPortal}
-  currentPage={currentPage}
-  hasPortal={hasPortal}
-/>
-
-
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        isOpen={isSidebarOpen}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        onClose={() => setIsSidebarOpen(false)}
-        items={[
-          {
-            id: 'profile',
-            icon: <LayoutDashboard size={20} />,
-            label: 'Dashboard',
-            onClick: () => setActiveTab('profile'),
-            isActive: activeTab === 'profile'
-          },
-          {
-            id: 'ewallet',
-            icon: <CreditCard size={20} />,
-            label: 'E-Wallet',
-            onClick: () => setActiveTab('ewallet'),
-            isActive: activeTab === 'ewallet'
-          },
-          {
-            id: 'incomewallet',
-            icon: <DollarSign size={20} />,
-            label: 'Income Wallet',
-            onClick: () => setActiveTab('incomewallet'),
-            isActive: activeTab === 'incomewallet'
-          },
-          {
-            id: 'kyc',
-            icon: <FileText size={20} />,
-            label: 'KYC Verification',
-            onClick: () => setActiveTab('kyc'),
-            isActive: activeTab === 'kyc'
-          },
-          {
-            id: 'bank',
-            icon: <Banknote size={20} />,
-            label: 'Add Bank Account',
-            onClick: () => setActiveTab('bank'),
-            isActive: activeTab === 'bank'
-          },
-          ...(hasPortal ? [{
-            id: 'portal',
-            icon: <Store size={20} />,
-            label: 'Manage Customer Portal',
-            onClick: () => handleSwitchToPortal(),
-            isActive: showPortalManagement
-          }] : [])
-        ]}
+      <Header 
+        user={user}
+        onLogout={onLogout}
+        onProfileClick={() => setShowProfileModal(true)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isCompanyDropdownOpen={isCompanyDropdownOpen}
+        setIsCompanyDropdownOpen={setIsCompanyDropdownOpen}
+        companyDropdownRef={companyDropdownRef}
+        setCurrentPage={setCurrentPage || (() => {})}
+        setShowAuth={() => {}}
+        showSecondaryHeader={false}
+        secondaryTitle=""
+        onMenuClick={() => {}}
+        onPortalClick={handleSwitchToPortal}
+        currentPage={currentPage}
+        hasPortal={hasPortal}
       />
-      
-      {/* Main Content */}
-      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
-        <div className="max-w-8xl mx-auto">
+
+      {/* Sidebar and Main Content Layout */}
+      <div className="flex">
+        {/* Sidebar - Only show on actual dashboard pages, not on shopping pages */}
+        {(currentPage === 'customerDashboard' || currentPage === 'founderDashboard' || !currentPage) && (
+          <Sidebar
+            isCollapsed={isSidebarCollapsed}
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onClose={() => setIsSidebarOpen(false)}
+            items={[
+              {
+                id: 'profile',
+                icon: <LayoutDashboard size={20} />,
+                label: 'Dashboard',
+                onClick: () => setActiveTab('profile'),
+                isActive: activeTab === 'profile'
+              },
+              {
+                id: 'ewallet',
+                icon: <CreditCard size={20} />,
+                label: 'E-Wallet',
+                onClick: () => setActiveTab('ewallet'),
+                isActive: activeTab === 'ewallet'
+              },
+              {
+                id: 'incomewallet',
+                icon: <DollarSign size={20} />,
+                label: 'Income Wallet',
+                onClick: () => setActiveTab('incomewallet'),
+                isActive: activeTab === 'incomewallet'
+              },
+              {
+                id: 'kyc',
+                icon: <FileText size={20} />,
+                label: 'KYC Verification',
+                onClick: () => setActiveTab('kyc'),
+                isActive: activeTab === 'kyc'
+              },
+              {
+                id: 'bank',
+                icon: <Banknote size={20} />,
+                label: 'Add Bank Account',
+                onClick: () => setActiveTab('bank'),
+                isActive: activeTab === 'bank'
+              },
+              ...(hasPortal ? [{
+                id: 'portal',
+                icon: <Store size={20} />,
+                label: 'Manage Customer Portal',
+                onClick: () => handleSwitchToPortal(),
+                isActive: showPortalManagement
+              }] : [])
+            ]}
+          />
+        )}
+        
+        {/* Main Content */}
+        <div className={`flex-1 overflow-x-hidden ${currentPage === 'landing' ? 'px-0' : 'px-4'}`} style={{ paddingTop: currentPage === 'landing' ? '0px' : '16px' }}>
+          <div className="max-w-8xl mx-auto">
         {currentPage === 'landing' && (
           <LandingPage setCurrentPage={setCurrentPage} onNavigateToSignup={onNavigateToSignup} hideHeader={true} currentPage={currentPage} />
         )}
@@ -1582,6 +1580,7 @@ const CustomerDashboard = ({ user, onLogout, onNavigateToSignup, setCurrentPage:
         {currentPage === 'bankings' && <BankingsPage setCurrentPage={setCurrentPage} onNavigateToSignup={onNavigateToSignup} hideHeader={true} />}
         {currentPage === 'legals' && <LegalsPage setCurrentPage={setCurrentPage} onNavigateToSignup={onNavigateToSignup} hideHeader={true} />}
         {(currentPage === 'customerDashboard' || currentPage === 'founderDashboard' || !currentPage) && renderTabContent()}
+          </div>
         </div>
       </div>
       

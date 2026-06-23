@@ -79,6 +79,9 @@ const Header = ({
   // States for menu drawer
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeMenuSection, setActiveMenuSection] = useState("menu");
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [dropdownActiveSection, setDropdownActiveSection] = useState<"menu" | "profile" | "orders">("menu");
+  const profileDropdownRef = React.useRef<HTMLDivElement | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
@@ -151,6 +154,19 @@ const Header = ({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isCompanyDropdownOpen, companyDropdownRef, setIsCompanyDropdownOpen]);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef?.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    if (isProfileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isProfileDropdownOpen]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -1392,14 +1408,169 @@ const Header = ({
                       <img src="/dashboard.png" alt="Dashboard" className="w-7 h-7 object-contain" />
                     </button>
                   )}
-                  {/* Menu (hamburger) button - only visible on dashboard pages */}
+                  {/* Account/Profile button - only visible on dashboard pages */}
                   {(currentPage === 'customerDashboard' || currentPage === 'brandOwnerDashboard' || currentPage === 'founderDashboard' || currentPage === 'adminDashboard') && (
-                  <button
-                    onClick={handleMenuClick}
-                    className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                  >
-                    <Menu size={24} />
-                  </button>
+                  <div className="relative" ref={profileDropdownRef}>
+                    <div
+                      className="flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+                      onClick={() => {
+                        // For customer and brand_owner, toggle dropdown
+                        if (currentPage === 'customerDashboard' || currentPage === 'brandOwnerDashboard') {
+                          setIsProfileDropdownOpen(!isProfileDropdownOpen);
+                        } else {
+                          // For founder and admin, open the full menu drawer
+                          handleMenuClick();
+                        }
+                      }}
+                    >
+                      <div className="relative">
+                        <User size={20} className="text-gray-700" />
+                      </div>
+                      <span className="text-[13px] font-semibold text-slate-900">
+                        Profile
+                      </span>
+                    </div>
+
+                    {/* Profile Dropdown Menu - for customer and brand_owner dashboards */}
+                    {(currentPage === 'customerDashboard' || currentPage === 'brandOwnerDashboard') && isProfileDropdownOpen && (
+                      <div 
+                        className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-2 max-h-96 overflow-y-auto"
+                        ref={profileDropdownRef}
+                      >
+                        {dropdownActiveSection === "menu" && (
+                          <>
+                            <button
+                              onClick={() => setDropdownActiveSection("profile")}
+                              className="w-full flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              <User size={18} className="mr-3 text-slate-900" />
+                              Manage Your Account
+                            </button>
+                            <button
+                              onClick={() => setDropdownActiveSection("orders")}
+                              className="w-full flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              <Package size={18} className="mr-3 text-slate-900" />
+                              Orders
+                            </button>
+                            <div className="border-t border-gray-100 my-1"></div>
+                            <button
+                              onClick={() => {
+                                setIsProfileDropdownOpen(false);
+                                handleLogoutClick();
+                              }}
+                              className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <LogOut size={18} className="mr-3 text-red-500" />
+                              Logout
+                            </button>
+                          </>
+                        )}
+                        
+                        {dropdownActiveSection === "profile" && (
+                          <div className="px-4 py-2">
+                            <button
+                              onClick={() => setDropdownActiveSection("menu")}
+                              className="flex items-center text-sm text-slate-900 hover:text-gray-900 mb-3 pb-2 border-b border-gray-100"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                              </svg>
+                              Manage Your Account
+                            </button>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                                <input
+                                  type="text"
+                                  value={userName}
+                                  onChange={(e) => setUserName(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Mobile Number</label>
+                                <input
+                                  type="text"
+                                  value={userMobile}
+                                  onChange={(e) => setUserMobile(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                                <input
+                                  type="email"
+                                  value={userEmail}
+                                  onChange={(e) => setUserEmail(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                                />
+                              </div>
+                              <button
+                                onClick={handleProfileSave}
+                                className="w-full px-3 py-2 bg-slate-600 text-white text-sm font-medium rounded hover:bg-slate-700 transition-colors"
+                              >
+                                Save Details
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {dropdownActiveSection === "orders" && (
+                          <div className="px-4 py-2">
+                            <button
+                              onClick={() => setDropdownActiveSection("menu")}
+                              className="flex items-center text-sm text-slate-900 hover:text-gray-900 mb-3 pb-2 border-b border-gray-100"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                              </svg>
+                              Orders
+                            </button>
+                            <div className="space-y-2">
+                              <button
+                                onClick={() => {
+                                  setIsProfileDropdownOpen(false);
+                                  setCurrentPage("orderHistory");
+                                }}
+                                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Order History
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsProfileDropdownOpen(false);
+                                  setCurrentPage("orderTracking");
+                                }}
+                                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Order Tracking
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsProfileDropdownOpen(false);
+                                  setCurrentPage("orderSummary");
+                                }}
+                                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Order Summary
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   )}
                 </div>
               ) : (

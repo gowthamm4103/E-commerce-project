@@ -36,8 +36,13 @@ const Login = ({ onSwitchView }: LoginProps): JSX.Element => {
         return;
       }
 
-      // Store the JWT token
-      setToken(result.token);
+      // Validate and store the JWT token
+      if (!result.token || typeof result.token !== 'string' || result.token.trim() === '') {
+        setError("Login successful but no authentication token received. Please contact support.");
+        setLoading(false);
+        return;
+      }
+      setToken(result.token.trim());
 
       onSwitchView('twoFactorAuth', { user: result.user });
     } catch (err: unknown) {

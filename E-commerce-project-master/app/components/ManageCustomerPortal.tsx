@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Check, Copy, X, ArrowLeft, Edit, Eye, LayoutDashboard, Users, Wallet, DollarSign, FileText, Banknote, Store } from 'lucide-react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useSidebar } from '../context/SidebarContext';
 
 import PortalSetupStep1 from './PortalSetupStep1';
 import PortalSetupStep2 from './PortalSetupStep2';
@@ -29,22 +30,12 @@ const ManageCustomerPortal = ({
   user, 
   onLogout, 
   onSwitchToDashboard, 
-  onNavigateToTab,
-  isSidebarOpen: sidebarOpenProp,
-  isSidebarCollapsed: sidebarCollapsedProp,
-  setIsSidebarOpen,
-  setIsSidebarCollapsed
+  onNavigateToTab
 }: ManageCustomerPortalProps): JSX.Element => {
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Use props if provided, otherwise use local state for sidebar
-  const [internalSidebarOpen, setInternalSidebarOpen] = useState(true);
-  const [internalSidebarCollapsed, setInternalSidebarCollapsed] = useState(false);
-  
-  const isSidebarOpen = sidebarOpenProp ?? internalSidebarOpen;
-  const isSidebarCollapsed = sidebarCollapsedProp ?? internalSidebarCollapsed;
-  const handleSetSidebarOpen = setIsSidebarOpen ?? setInternalSidebarOpen;
-  const handleSetSidebarCollapsed = setIsSidebarCollapsed ?? setInternalSidebarCollapsed;
+  // Use SidebarContext for sidebar state
+  const { isOpen: isSidebarOpen, isCollapsed: isSidebarCollapsed, setIsOpen: setIsSidebarOpen, setIsCollapsed: setIsSidebarCollapsed } = useSidebar();
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -426,101 +417,106 @@ const ManageCustomerPortal = ({
           showSecondaryHeader={false}
           secondaryTitle=""
           onMenuClick={() => {}}
+          onPortalClick={handleSetupPortal}
           currentPage="customerDashboard"
+          hasPortal={true}
         />
       
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        isOpen={isSidebarOpen}
-        onToggle={() => handleSetSidebarCollapsed(!isSidebarCollapsed)}
-        onClose={() => handleSetSidebarOpen(false)}
-        items={[
-          {
-            id: 'dashboard',
-            icon: <LayoutDashboard size={20} />,
-            label: 'Dashboard',
-            onClick: () => {
-              if (onNavigateToTab) {
-                onNavigateToTab('profile');
-              } else {
-                onSwitchToDashboard();
-              }
+      {/* Sidebar and Main Content Layout - Side by Side */}
+      <div className="flex">
+        {/* Sidebar */}
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onClose={() => setIsSidebarOpen(false)}
+          items={[
+            {
+              id: 'dashboard',
+              icon: <LayoutDashboard size={20} />,
+              label: 'Dashboard',
+              onClick: () => {
+                if (onNavigateToTab) {
+                  onNavigateToTab('profile');
+                } else {
+                  onSwitchToDashboard();
+                }
+              },
+              isActive: false
             },
-            isActive: false
-          },
-          {
-            id: 'ewallet',
-            icon: <Wallet size={20} />,
-            label: 'E-Wallet',
-            onClick: () => {
-              if (onNavigateToTab) {
-                onNavigateToTab('ewallet');
-              } else {
-                onSwitchToDashboard();
-              }
+            {
+              id: 'ewallet',
+              icon: <Wallet size={20} />,
+              label: 'E-Wallet',
+              onClick: () => {
+                if (onNavigateToTab) {
+                  onNavigateToTab('ewallet');
+                } else {
+                  onSwitchToDashboard();
+                }
+              },
+              isActive: false
             },
-            isActive: false
-          },
-          {
-            id: 'incomewallet',
-            icon: <DollarSign size={20} />,
-            label: 'Income Wallet',
-            onClick: () => {
-              if (onNavigateToTab) {
-                onNavigateToTab('incomewallet');
-              } else {
-                onSwitchToDashboard();
-              }
+            {
+              id: 'incomewallet',
+              icon: <DollarSign size={20} />,
+              label: 'Income Wallet',
+              onClick: () => {
+                if (onNavigateToTab) {
+                  onNavigateToTab('incomewallet');
+                } else {
+                  onSwitchToDashboard();
+                }
+              },
+              isActive: false
             },
-            isActive: false
-          },
-          {
-            id: 'kyc',
-            icon: <FileText size={20} />,
-            label: 'KYC Verification',
-            onClick: () => {
-              if (onNavigateToTab) {
-                onNavigateToTab('kyc');
-              } else {
-                onSwitchToDashboard();
-              }
+            {
+              id: 'kyc',
+              icon: <FileText size={20} />,
+              label: 'KYC Verification',
+              onClick: () => {
+                if (onNavigateToTab) {
+                  onNavigateToTab('kyc');
+                } else {
+                  onSwitchToDashboard();
+                }
+              },
+              isActive: false
             },
-            isActive: false
-          },
-          {
-            id: 'bank',
-            icon: <Banknote size={20} />,
-            label: 'Add Bank Account',
-            onClick: () => {
-              if (onNavigateToTab) {
-                onNavigateToTab('bank');
-              } else {
-                onSwitchToDashboard();
-              }
+            {
+              id: 'bank',
+              icon: <Banknote size={20} />,
+              label: 'Add Bank Account',
+              onClick: () => {
+                if (onNavigateToTab) {
+                  onNavigateToTab('bank');
+                } else {
+                  onSwitchToDashboard();
+                }
+              },
+              isActive: false
             },
-            isActive: false
-          },
-          {
-            id: 'portal',
-            icon: <Store size={20} />,
-            label: 'Manage Customer Portal',
-            onClick: () => setActiveTab('overview'),
-            isActive: activeTab === 'overview'
-          }
-        ]}
-      />
-      
-      {/* Main Content */}
-      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
-        <div className="max-w-8xl mx-auto">
-        {setupStep > 0 ? (
-          <div className="max-w-8xl mx-auto px-4 py-8">
-            {renderSetupStep()}
+            {
+              id: 'portal',
+              icon: <Store size={20} />,
+              label: 'Manage Customer Portal',
+              onClick: () => setActiveTab('overview'),
+              isActive: activeTab === 'overview'
+            }
+          ]}
+        />
+        
+        {/* Main Content */}
+        <div className="flex-1 px-4 transition-all duration-300" style={{ paddingTop: '16px' }}>
+          <div className="max-w-8xl mx-auto">
+          {setupStep > 0 ? (
+            <div className="px-4 py-8">
+              {renderSetupStep()}
+            </div>
+          ) : (
+            renderTabContent()
+          )}
           </div>
-        ) : (
-          renderTabContent()
-        )}
         </div>
       </div>
       

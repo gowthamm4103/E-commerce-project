@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { CartProvider } from '../context/CartContext';
-import { getUserSession, removeUserSession, removeToken, getToken } from '../lib/api';
+import { SidebarProvider } from '../context/SidebarContext';
+import { getUserSession, removeUserSession, removeToken, getToken, setUserSession } from '../lib/api';
 import Header from './Header';
 import Footer from './Footer';
 import LandingPage from './LandingPage';
@@ -188,6 +189,8 @@ const FashionWebApp = (): JSX.Element => {
     setUserType(userData.userType);
     setIsLoggedIn(true);
     setShowAuth(false);
+    // Save user session to localStorage for persistence
+    setUserSession(userData);
     if (userData.userType === 'customer') {
       setCurrentPageState('customerDashboard');
       window.history.pushState(null, '', `/${userData.userId}/dashboard`);
@@ -325,9 +328,19 @@ const FashionWebApp = (): JSX.Element => {
     );
   };
 
+  // Determine the current page name for sidebar visibility
+  const getSidebarPageName = (): string => {
+    if (portalInfo) {
+      return portalInfo.type === 'team' ? 'manageTeamPortal' : 'manageCustomerPortal';
+    }
+    return currentPage;
+  };
+
   return (
     <CartProvider>
-      <div className="min-h-screen bg-white">{renderPage()}</div>
+      <SidebarProvider currentPage={getSidebarPageName()}>
+        <div className="min-h-screen bg-white">{renderPage()}</div>
+      </SidebarProvider>
     </CartProvider>
   );
 };

@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Check, Copy, X, Menu, LayoutDashboard, ArrowLeft } from 'lucide-react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useSidebar } from '../context/SidebarContext';
 import { portalsAPI } from '../lib/api';
 
 import TeamPortalSetupStep1 from './TeamPortalSetupStep1';
@@ -21,8 +22,7 @@ interface ManageTeamPortalProps {
 
 const ManageTeamPortal = ({ user, onLogout, onSwitchToDashboard }: ManageTeamPortalProps): JSX.Element => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { isOpen: isSidebarOpen, isCollapsed: isSidebarCollapsed, setIsOpen: setIsSidebarOpen, setIsCollapsed: setIsSidebarCollapsed } = useSidebar();
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -273,7 +273,7 @@ const ManageTeamPortal = ({ user, onLogout, onSwitchToDashboard }: ManageTeamPor
       />
       
       {/* Main Content */}
-      <div className={`px-4 py-8 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`}>
+      <div className={`px-4 transition-all duration-300 ${isSidebarOpen && !isSidebarCollapsed ? 'md:ml-64' : isSidebarOpen ? 'md:ml-16' : ''}`} style={{ paddingTop: '16px' }}>
         <div className="max-w-8xl mx-auto">
         {renderTabContent()}
         </div>

@@ -60,9 +60,6 @@ async function apiFetch<T = unknown>(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  } else {
-    // Log warning for debugging - token is missing
-    console.warn('API Warning: No authentication token found in localStorage. Request may fail if endpoint requires authentication.');
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
